@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flappy Bird</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      margin: 0;
+      overflow: hidden;
+      background: url("BG.jpeg") no-repeat center/cover;
+    }
+
+    #board {
+      display: block;
+      margin: 0 auto;
+      background: url("flappybirdbg.png") no-repeat center/cover;
+    }
+
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .controls button, #restartBtn, #characterSelect {
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: radial-gradient(circle, #1e3c72, #000000);
+      color: white;
+    }
+
+    .controls button:hover, #restartBtn:hover, #characterSelect:hover {
+      transform: scale(1.1);
+      background: #333;
+    }
+
+    .controls button:active, #restartBtn:active {
+      transform: scale(0.95);
+    }
+
+    #gameOverModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    #gameOverModal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #restartBtn, #characterSelect {
+      margin-top: 15px;
+    }
+
+    #countdownText {
+      font-size: 24px;
+      margin-top: 10px;
+    }
+
+    #playerNameDisplay {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+
+    #characterSelectModal {
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      margin-top: 15px;
+      border: none;
+      cursor: pointer;
+      background: radial-gradient(circle, #1e3c72, #000000);
+      color: black;
+}
+
+#creditText {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 14px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  z-index: 999;
+}
+
+  </style>
+</head>
+<body>
+  <canvas id="board"></canvas>
+  <div id="creditText">Credit For Creating Goes To: <strong>HarisIsMe</strong></div>
+
+
+  <div class="controls">
+    <button id="muteBtn">🔊</button>
+    <button id="pauseBtn">⏸️</button>
+    <select id="characterSelect">
+      <option value="flappybird.gif">Default</option>
+      <option value="redBirrd.png">Red</option>
+      <option value="blueBirrd.png">Blue</option>
+    </select>
+  </div>
+
+
+ <div id="gameOverModal">
+  <div>Game Over</div>
+  <div id="playerNameDisplay">Player: </div>
+  <div>Score: <span id="finalScore">0</span></div>
+  <div>High Score: <span id="highScore">0</span></div>
+
+  <select id="characterSelectModal">
+    <option value="flappybird.gif">Default</option>
+    <option value="redBirrd.png">Red</option>
+    <option value="blueBirrd.png">Blue</option>
+  </select>
+
+  <button id="restartBtn">🔁 Restart</button>
+</div>
+
+  <!-- Audio -->
+  <audio id="bgm" loop src="bgm_mario.mp3"></audio>
+  <audio id="sfx_wing" src="sfx_wing.wav"></audio>
+  <audio id="sfx_hit" src="sfx_hit.wav"></audio>
+  <audio id="sfx_point" src="sfx_point.wav"></audio>
+  <audio id="sfx_swooshing" src="sfx_swooshing.wav"></audio>
+  <audio id="sfx_die" src="sfx_die.wav"></audio>
+
+  <script>
+    let board, context;
+    const boardWidth = 360, boardHeight = 640;
+    const birdWidth = 34, birdHeight = 24;
+    const birdX = boardWidth / 8, birdY = boardHeight / 2;
+    let birdImg = new Image();
+    let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
+    let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth, pipeY = 0;
+    let topPipeImg = new Image(), bottomPipeImg = new Image();
+    let velocityX = -2, velocityY = 0, gravity = 0.4;
+    let gameOver = false, score = 0, paused = false, countdownActive = false;
+    let muted = false;
+    let playerName = prompt("Enter your name:") || "Player";
+    let highScore = localStorage.getItem("flappyHighScore_" + playerName) || 0;
+
+    let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
+
+    window.onload = () => {
+      board = document.getElementById("board");
+      board.width = boardWidth;
+      board.height = boardHeight;
+      context = board.getContext("2d");
+
+      birdImg.src = "flappybird.gif";
+      topPipeImg.src = "toppipe.png";
+      bottomPipeImg.src = "bottompipe.png";
+
+      bgm = document.getElementById("bgm");
+      sfxWing = document.getElementById("sfx_wing");
+      sfxHit = document.getElementById("sfx_hit");
+      sfxPoint = document.getElementById("sfx_point");
+      sfxSwooshing = document.getElementById("sfx_swooshing");
+      sfxDie = document.getElementById("sfx_die");
+
+      document.getElementById("muteBtn").onclick = toggleMute;
+      document.getElementById("pauseBtn").onclick = togglePause;
+      document.getElementById("restartBtn").onclick = restartGame;
+      document.getElementById("characterSelect").onchange = changeCharacter;
+      document.getElementById("characterSelect").onchange = changeCharacter;
+      document.getElementById("characterSelectModal").onchange = changeCharacter;
+
+
+      document.addEventListener("keydown", moveBird);
+      document.addEventListener("touchstart", moveBird);
+
+      requestAnimationFrame(update);
+      setInterval(placePipes, 1500);
+    };
+
+    function toggleMute() {
+      muted = !muted;
+      [bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie].forEach(a => a.muted = muted);
+      document.getElementById("muteBtn").textContent = muted ? "🔇" : "🔊";
+    }
+
+    function changeCharacter(e) {
+  const selected = e.target.value;
+  birdImg.src = selected;
+
+  // Sync both dropdowns
+  document.getElementById("characterSelect").value = selected;
+  document.getElementById("characterSelectModal").value = selected;
+}
+
+    function togglePause() {
+      if (gameOver || countdownActive) return;
+      if (!paused) {
+        paused = true;
+        document.getElementById("pauseBtn").textContent = "▶️";
+      } else {
+        document.getElementById("pauseBtn").textContent = "⏸️";
+        startCountdownBeforeResume();
+      }
+    }
+
+    function startCountdownBeforeResume() {
+      countdownActive = true;
+      let counter = 3;
+      const text = document.createElement("div");
+      text.id = "countdownText";
+      text.textContent = `Resuming in ${counter}...`;
+      document.body.appendChild(text);
+
+      const countdown = setInterval(() => {
+        counter--;
+        text.textContent = `Resuming in ${counter}...`;
+        if (counter <= 0) {
+          clearInterval(countdown);
+          paused = false;
+          countdownActive = false;
+          text.remove();
+        }
+      }, 1000);
+    }
+
+    function update() {
+      requestAnimationFrame(update);
+      if (gameOver || paused) return;
+
+      context.clearRect(0, 0, board.width, board.height);
+
+      velocityY += gravity;
+      bird.y = Math.max(bird.y + velocityY, 0);
+      context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+      if (bird.y > board.height) return handleGameOver();
+
+      for (let i = 0; i < pipeArray.length; i++) {
+        let pipe = pipeArray[i];
+        pipe.x += velocityX;
+        context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+
+        if (!pipe.passed && bird.x > pipe.x + pipe.width) {
+          score += 0.5;
+          pipe.passed = true;
+          sfxPoint.play();
+        }
+
+        if (detectCollision(bird, pipe)) return handleGameOver();
+      }
+
+      pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
+
+      context.fillStyle = "white";
+      context.font = "45px sans-serif";
+      context.fillText(Math.floor(score), 5, 45);
+    }
+
+    function placePipes() {
+      if (gameOver || paused) return;
+
+      let randomY = pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
+      let opening = board.height / 4;
+
+      pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
+      pipeArray.push({ img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening, width: pipeWidth, height: pipeHeight, passed: false });
+    }
+
+    function moveBird(e) {
+      if (gameOver || paused || countdownActive) return;
+      if (e.type === "keydown" && !(e.code === "Space" || e.code === "ArrowUp")) return;
+      if (bgm.paused && !muted) { bgm.play(); sfxSwooshing.play(); }
+
+      sfxWing.currentTime = 0;
+      sfxWing.play();
+      velocityY = -6;
+    }
+
+    function detectCollision(a, b) {
+      return a.x < b.x + b.width &&
+             a.x + a.width > b.x &&
+             a.y < b.y + b.height &&
+             a.y + a.height > b.y;
+    }
+
+    function handleGameOver() {
+      if (gameOver) return;
+      gameOver = true;
+      sfxHit.play();
+      sfxDie.play();
+      bgm.pause();
+
+      document.getElementById("finalScore").textContent = Math.floor(score);
+      document.getElementById("playerNameDisplay").textContent = "Player: " + playerName;
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("flappyHighScore_" + playerName, highScore);
+      }
+
+      document.getElementById("highScore").textContent = Math.floor(highScore);
+      document.getElementById("gameOverModal").classList.add("show");
+    }
+
+    function restartGame() {
+      document.getElementById("gameOverModal").classList.remove("show");
+      bird.y = birdY;
+      velocityY = 0;
+      pipeArray = [];
+      score = 0;
+      gameOver = false;
+    }
+
+    function changeCharacter(e) {
+      const selected = e.target.value;
+      birdImg.src = selected;
+    }
+  </script>
+</body>
+</html>
