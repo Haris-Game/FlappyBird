@@ -1,146 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Flappy Bird</title>
+  <title>Play Flappy Bird Online</title>
   <style>
     body {
-      font-family: 'Courier New', monospace;
+      font-family: 'Press Start 2P', monospace;
       text-align: center;
       margin: 0;
       overflow: hidden;
-      background: url("BG.jpeg") no-repeat center/cover;
+      background: #000 url("BG.jpeg") no-repeat center center fixed;
+      background-size: cover;
     }
 
     #board {
       display: block;
       margin: 0 auto;
       background: url("flappybirdbg.png") no-repeat center/cover;
-    }
-
-    .controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .controls button, #restartBtn, #characterSelect {
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: radial-gradient(circle, #1e3c72, #000000);
-      color: white;
-    }
-
-    .controls button:hover, #restartBtn:hover, #characterSelect:hover {
-      transform: scale(1.1);
-      background: #333;
-    }
-
-    .controls button:active, #restartBtn:active {
-      transform: scale(0.95);
+      position: relative;
+      z-index: 1;
+      max-width: 100%;
+      height: auto;
+      border-radius: 30px;
+      border: 10px solid #9ffaee;
     }
 
     #gameOverModal {
+      display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      z-index: 999;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.5s ease;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fef0c4;
+      border: 4px solid #222;
+      padding: 20px 40px;
+      z-index: 10;
+      font-family: 'Courier New', monospace;
+      color: black;
+      text-align: center;
     }
 
     #gameOverModal.show {
-      opacity: 1;
-      pointer-events: auto;
+      display: block;
     }
 
-    #restartBtn, #characterSelect {
+    #gameOverModal h2 {
+      color: #aa0000;
+      margin-bottom: 10px;
+    }
+
+    .game-over-buttons {
       margin-top: 15px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
     }
 
-    #countdownText {
-      font-size: 24px;
-      margin-top: 10px;
-    }
-
-    #playerNameDisplay {
-      font-size: 20px;
-      margin-top: 10px;
-    }
-
-    #characterSelectModal {
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 10px;
-      margin-top: 15px;
+    .game-over-buttons button {
+      background-color: #aa0000;
+      color: white;
       border: none;
+      padding: 10px 14px;
+      font-weight: bold;
       cursor: pointer;
-      background: radial-gradient(circle, #1e3c72, #000000);
-      color: black;
-}
+    }
 
-#creditText {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 14px;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-family: 'Courier New', monospace;
-  z-index: 999;
-}
-
+    .game-over-buttons button:hover {
+      background-color: #cc3333;
+    }
   </style>
 </head>
 <body>
   <canvas id="board"></canvas>
-  <div id="creditText">Credit For Creating Goes To: <strong>HarisIsMe</strong></div>
 
-
-  <div class="controls">
-    <button id="muteBtn">🔊</button>
-    <button id="pauseBtn">⏸️</button>
-    <select id="characterSelect">
-      <option value="flappybird.gif">Default</option>
-      <option value="redBirrd.png">Red</option>
-      <option value="blueBirrd.png">Blue</option>
-    </select>
+  <div id="gameOverModal">
+    <h2>GAME OVER</h2>
+    <div>Score: <span id="finalScore">0</span></div>
+    <div>Best: <span id="highScore">0</span></div>
+    <div class="game-over-buttons">
+      <button onclick="restartGame()">RESTART</button>
+      <button onclick="alert('Share feature coming soon!')">SHARE</button>
+      <button onclick="alert('Leaderboard feature coming soon!')">ADD TO LEADERBOARD</button>
+    </div>
   </div>
 
-
- <div id="gameOverModal">
-  <div>Game Over</div>
-  <div id="playerNameDisplay">Player: </div>
-  <div>Score: <span id="finalScore">0</span></div>
-  <div>High Score: <span id="highScore">0</span></div>
-
-  <select id="characterSelectModal">
-    <option value="flappybird.gif">Default</option>
-    <option value="redBirrd.png">Red</option>
-    <option value="blueBirrd.png">Blue</option>
-  </select>
-
-  <button id="restartBtn">🔁 Restart</button>
-</div>
-
-  <!-- Audio -->
   <audio id="bgm" loop src="bgm_mario.mp3"></audio>
   <audio id="sfx_wing" src="sfx_wing.wav"></audio>
   <audio id="sfx_hit" src="sfx_hit.wav"></audio>
@@ -149,6 +97,7 @@
   <audio id="sfx_die" src="sfx_die.wav"></audio>
 
   <script>
+    let waitingForStart = true;
     let board, context;
     const boardWidth = 360, boardHeight = 640;
     const birdWidth = 34, birdHeight = 24;
@@ -157,12 +106,11 @@
     let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
     let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth, pipeY = 0;
     let topPipeImg = new Image(), bottomPipeImg = new Image();
-    let velocityX = -2, velocityY = 0, gravity = 0.4;
+    let velocityX = 0, velocityY = 0, gravity = 0.4;
     let gameOver = false, score = 0, paused = false, countdownActive = false;
     let muted = false;
-    let playerName = prompt("Enter your name:") || "Player";
+    let playerName = prompt("Enter your name:")?.trim() || "Player";
     let highScore = localStorage.getItem("flappyHighScore_" + playerName) || 0;
-
     let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
     window.onload = () => {
@@ -182,66 +130,15 @@
       sfxSwooshing = document.getElementById("sfx_swooshing");
       sfxDie = document.getElementById("sfx_die");
 
-      document.getElementById("muteBtn").onclick = toggleMute;
-      document.getElementById("pauseBtn").onclick = togglePause;
-      document.getElementById("restartBtn").onclick = restartGame;
-      document.getElementById("characterSelect").onchange = changeCharacter;
-      document.getElementById("characterSelect").onchange = changeCharacter;
-      document.getElementById("characterSelectModal").onchange = changeCharacter;
-
-
       document.addEventListener("keydown", moveBird);
       document.addEventListener("touchstart", moveBird);
+      document.addEventListener("keydown", function(e) {
+        if (gameOver && e.code === "KeyR") restartGame();
+      });
 
       requestAnimationFrame(update);
       setInterval(placePipes, 1500);
     };
-
-    function toggleMute() {
-      muted = !muted;
-      [bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie].forEach(a => a.muted = muted);
-      document.getElementById("muteBtn").textContent = muted ? "🔇" : "🔊";
-    }
-
-    function changeCharacter(e) {
-  const selected = e.target.value;
-  birdImg.src = selected;
-
-  // Sync both dropdowns
-  document.getElementById("characterSelect").value = selected;
-  document.getElementById("characterSelectModal").value = selected;
-}
-
-    function togglePause() {
-      if (gameOver || countdownActive) return;
-      if (!paused) {
-        paused = true;
-        document.getElementById("pauseBtn").textContent = "▶️";
-      } else {
-        document.getElementById("pauseBtn").textContent = "⏸️";
-        startCountdownBeforeResume();
-      }
-    }
-
-    function startCountdownBeforeResume() {
-      countdownActive = true;
-      let counter = 3;
-      const text = document.createElement("div");
-      text.id = "countdownText";
-      text.textContent = `Resuming in ${counter}...`;
-      document.body.appendChild(text);
-
-      const countdown = setInterval(() => {
-        counter--;
-        text.textContent = `Resuming in ${counter}...`;
-        if (counter <= 0) {
-          clearInterval(countdown);
-          paused = false;
-          countdownActive = false;
-          text.remove();
-        }
-      }, 1000);
-    }
 
     function update() {
       requestAnimationFrame(update);
@@ -249,15 +146,29 @@
 
       context.clearRect(0, 0, board.width, board.height);
 
-      velocityY += gravity;
-      bird.y = Math.max(bird.y + velocityY, 0);
+      if (!waitingForStart) {
+        velocityY += gravity;
+        bird.y += velocityY;  // <-- allow bird to fall beyond bottom!
+        velocityX = -2;
+      } else {
+        // Floating effect - bird gently bobbing up and down before game start
+        let floatAmplitude = 10;
+        let floatFrequency = 0.005;
+        bird.y = birdY + floatAmplitude * Math.sin(Date.now() * floatFrequency);
+      }
+
       context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
 
-      if (bird.y > board.height) return handleGameOver();
+      // Check if bird fell off the bottom or hit top
+      if (!waitingForStart && (bird.y > board.height || bird.y < -bird.height)) {
+        return handleGameOver();
+      }
 
       for (let i = 0; i < pipeArray.length; i++) {
         let pipe = pipeArray[i];
-        pipe.x += velocityX;
+        if (!waitingForStart) {
+          pipe.x += velocityX;
+        }
         context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
 
         if (!pipe.passed && bird.x > pipe.x + pipe.width) {
@@ -272,13 +183,12 @@
       pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
       context.fillStyle = "white";
-      context.font = "45px sans-serif";
-      context.fillText(Math.floor(score), 5, 45);
+      context.font = "45px 'Press Start 2P', monospace";
+      context.fillText(Math.floor(score), board.width / 2 - context.measureText(Math.floor(score)).width / 2, board.height / 4);
     }
 
     function placePipes() {
-      if (gameOver || paused) return;
-
+      if (gameOver || paused || waitingForStart) return;
       let randomY = pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
       let opening = board.height / 4;
 
@@ -289,18 +199,23 @@
     function moveBird(e) {
       if (gameOver || paused || countdownActive) return;
       if (e.type === "keydown" && !(e.code === "Space" || e.code === "ArrowUp")) return;
-      if (bgm.paused && !muted) { bgm.play(); sfxSwooshing.play(); }
 
+      if (waitingForStart) {
+        waitingForStart = false;
+        if (!muted) {
+          bgm.currentTime = 0;
+          bgm.play();
+          sfxSwooshing.play();
+        }
+      }
+
+      velocityY = -6;
       sfxWing.currentTime = 0;
       sfxWing.play();
-      velocityY = -6;
     }
 
     function detectCollision(a, b) {
-      return a.x < b.x + b.width &&
-             a.x + a.width > b.x &&
-             a.y < b.y + b.height &&
-             a.y + a.height > b.y;
+      return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
     }
 
     function handleGameOver() {
@@ -309,9 +224,7 @@
       sfxHit.play();
       sfxDie.play();
       bgm.pause();
-
       document.getElementById("finalScore").textContent = Math.floor(score);
-      document.getElementById("playerNameDisplay").textContent = "Player: " + playerName;
 
       if (score > highScore) {
         highScore = score;
@@ -329,11 +242,8 @@
       pipeArray = [];
       score = 0;
       gameOver = false;
-    }
-
-    function changeCharacter(e) {
-      const selected = e.target.value;
-      birdImg.src = selected;
+      waitingForStart = true;
+      velocityX = 0;
     }
   </script>
 </body>
