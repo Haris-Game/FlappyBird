@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Play Flappy Bird Online</title>
+  <title>Flappy Bird</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Press Start 2P', monospace;
@@ -18,12 +15,39 @@
       background-size: cover;
     }
 
+    #tabs {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .tab-button {
+      font-family: 'Press Start 2P', monospace;
+      padding: 10px;
+      margin: 0 5px;
+      border: 2px solid #9ffaee;
+      background-color: #222;
+      color: #9ffaee;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      background-color: #9ffaee;
+      color: #000;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
     #board {
       display: block;
       margin: 0 auto;
       background: url("flappybirdbg.png") no-repeat center/cover;
-      position: relative;
-      z-index: 1;
       max-width: 100%;
       height: auto;
       border-radius: 30px;
@@ -49,16 +73,12 @@
       display: block;
     }
 
-    #gameOverModal h2 {
-      color: #aa0000;
-      margin-bottom: 10px;
-    }
-
     .game-over-buttons {
       margin-top: 15px;
       display: flex;
       justify-content: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .game-over-buttons button {
@@ -73,10 +93,52 @@
     .game-over-buttons button:hover {
       background-color: #cc3333;
     }
+
+    #leaderboardList {
+      text-align: left;
+      max-width: 300px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 10px;
+      font-family: monospace;
+    }
+
+    #leaderboardList li {
+      margin-bottom: 5px;
+    }
+
+    #resetLeaderboardBtn {
+      margin-top: 10px;
+      background: #222;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    #resetLeaderboardBtn:hover {
+      background: #444;
+    }
   </style>
 </head>
 <body>
-  <canvas id="board"></canvas>
+
+  <div id="tabs">
+    <button class="tab-button active" onclick="showTab('gameTab')">🎮 Game</button>
+    <button class="tab-button" onclick="showTab('leaderboardTab')">🏆 Leaderboard</button>
+  </div>
+
+  <div id="gameTab" class="tab-content active">
+    <canvas id="board"></canvas>
+  </div>
+
+  <div id="leaderboardTab" class="tab-content">
+    <h2>🏆 Leaderboard</h2>
+    <p>Logged in as: <strong id="playerDisplay"></strong></p>
+    <ol id="leaderboardList"></ol>
+    <button id="resetLeaderboardBtn" onclick="resetLeaderboard()">Reset Leaderboard</button>
+  </div>
 
   <div id="gameOverModal">
     <h2>GAME OVER</h2>
@@ -84,8 +146,8 @@
     <div>Best: <span id="highScore">0</span></div>
     <div class="game-over-buttons">
       <button onclick="restartGame()">RESTART</button>
-      <button onclick="alert('Share feature coming soon!')">SHARE</button>
-      <button onclick="alert('Leaderboard feature coming soon!')">ADD TO LEADERBOARD</button>
+      <button onclick="shareScore()">SHARE</button>
+      <button onclick="addToLeaderboard()">ADD TO LEADERBOARD</button>
     </div>
   </div>
 
@@ -114,6 +176,8 @@
     let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
     window.onload = () => {
+      document.getElementById("playerDisplay").textContent = playerName;
+
       board = document.getElementById("board");
       board.width = boardWidth;
       board.height = boardHeight;
@@ -132,12 +196,13 @@
 
       document.addEventListener("keydown", moveBird);
       document.addEventListener("touchstart", moveBird);
-      document.addEventListener("keydown", function(e) {
+      document.addEventListener("keydown", e => {
         if (gameOver && e.code === "KeyR") restartGame();
       });
 
       requestAnimationFrame(update);
       setInterval(placePipes, 1500);
+      displayLeaderboard();
     };
 
     function update() {
@@ -148,27 +213,19 @@
 
       if (!waitingForStart) {
         velocityY += gravity;
-        bird.y += velocityY;  // <-- allow bird to fall beyond bottom!
+        bird.y += velocityY;
         velocityX = -2;
       } else {
-        // Floating effect - bird gently bobbing up and down before game start
-        let floatAmplitude = 10;
-        let floatFrequency = 0.005;
-        bird.y = birdY + floatAmplitude * Math.sin(Date.now() * floatFrequency);
+        bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
       }
 
       context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
 
-      // Check if bird fell off the bottom or hit top
-      if (!waitingForStart && (bird.y > board.height || bird.y < -bird.height)) {
-        return handleGameOver();
-      }
+      if (!waitingForStart && (bird.y > board.height || bird.y < -bird.height)) return handleGameOver();
 
       for (let i = 0; i < pipeArray.length; i++) {
         let pipe = pipeArray[i];
-        if (!waitingForStart) {
-          pipe.x += velocityX;
-        }
+        if (!waitingForStart) pipe.x += velocityX;
         context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
 
         if (!pipe.passed && bird.x > pipe.x + pipe.width) {
@@ -244,6 +301,51 @@
       gameOver = false;
       waitingForStart = true;
       velocityX = 0;
+    }
+
+    function addToLeaderboard() {
+      let leaderboard = JSON.parse(localStorage.getItem("flappyLeaderboard") || "[]");
+      leaderboard.push({ name: playerName, score: Math.floor(score) });
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 10);
+      localStorage.setItem("flappyLeaderboard", JSON.stringify(leaderboard));
+      displayLeaderboard();
+      alert("Score added to leaderboard!");
+    }
+
+    function displayLeaderboard() {
+      const list = document.getElementById("leaderboardList");
+      list.innerHTML = "";
+      const leaderboard = JSON.parse(localStorage.getItem("flappyLeaderboard") || "[]");
+      leaderboard.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.textContent = `${index + 1}. ${entry.name}: ${entry.score}`;
+        list.appendChild(li);
+      });
+    }
+
+    function resetLeaderboard() {
+      if (playerName !== "Haris") {
+        alert("Only Admin (H****) can reset the leaderboard.");
+        return;
+      }
+      if (confirm("Are you sure you want to reset the leaderboard?")) {
+        localStorage.removeItem("flappyLeaderboard");
+        displayLeaderboard();
+      }
+    }
+
+    function shareScore() {
+      const subject = encodeURIComponent(`My Flappy Bird Score!`);
+      const body = encodeURIComponent(`Hey! I just scored ${Math.floor(score)} in Flappy Bird! Can you beat me?\n\n- ${playerName}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+
+    function showTab(tabId) {
+      document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+      document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add("active");
+      document.getElementById(tabId).classList.add("active");
     }
   </script>
 </body>
