@@ -53,6 +53,22 @@
       border: 10px solid cyan;
     }
 
+    #pauseContainer {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    #pauseBtn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      padding: 5px 20px;
+      background: cyan;
+      border: 2px solid black;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
     #scoreboard {
       display: none;
       color: white;
@@ -150,11 +166,16 @@
 <body>
   <div class="tabs">
     <button id="gameTab" class="active">Game</button>
-    <button id="pauseBtn">Pause</button>
     <button id="scoreboardTab">Scoreboard</button>
   </div>
 
   <canvas id="board"></canvas>
+
+  <!-- Moved pause button under canvas -->
+  <div id="pauseContainer">
+    <button id="pauseBtn">Pause</button>
+  </div>
+
   <div id="scoreboard"></div>
 
   <div id="gameOverModal">
@@ -181,7 +202,14 @@
   <audio id="sfx_swooshing" src="sfx_swooshing.wav"></audio>
   <audio id="sfx_die" src="sfx_die.wav"></audio>
 
+  <!-- Script -->
   <script>
+    // Keep your JavaScript exactly as it was.
+    // Only change: remove `pauseBtn` click from inside `.tabs`
+    // (you already have it outside now, so the line below still works)
+    document.getElementById("pauseBtn").onclick = togglePause;
+  </script>
+ <script>
   let waitingForStart = true;
   let board, context;
   const boardWidth = 360, boardHeight = 640;
@@ -195,7 +223,8 @@
   let gameOver = false, score = 0, paused = false, countdownActive = false;
   let muted = false;
   let playerName = prompt("Enter your name:")?.trim() || "Player";
-  let highScore = localStorage.getItem("flappyHighScore_" + playerName) || 0;
+let playerScores = JSON.parse(localStorage.getItem("flappyScores_" + playerName)) || [];
+let highScore = playerScores.length ? Math.max(...playerScores) : 0;
   let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
   window.onload = () => {
@@ -244,17 +273,26 @@
   }
 
   function showScoreboard() {
-    const scoreboard = document.getElementById("scoreboard");
-    let scores = [];
-    for (let key in localStorage) {
-      if (key.startsWith("flappyHighScore_")) {
-        scores.push({ name: key.replace("flappyHighScore_", ""), score: parseInt(localStorage[key]) });
+  const scoreboard = document.getElementById("scoreboard");
+  let scores = [];
+
+  for (let key in localStorage) {
+    if (key.startsWith("flappyScores_")) {
+      const name = key.replace("flappyScores_", "");
+      const entries = JSON.parse(localStorage[key]) || [];
+      for (let s of entries) {
+        scores.push({ name, score: s });
       }
     }
-    scores.sort((a, b) => b.score - a.score);
-    scoreboard.innerHTML = "<h2>Top Scores</h2><ol>" + scores.slice(0, 10).map(s => `<li>${s.name}: ${s.score}</li>`).join('') + "</ol>";
-    scoreboard.style.display = "block";
   }
+
+  scores.sort((a, b) => b.score - a.score);
+  scoreboard.innerHTML = "<h2>Top Scores</h2><ol>" +
+    scores.slice(0, 10).map(s => `<li>${s.name}: ${s.score}</li>`).join('') +
+    "</ol>";
+  scoreboard.style.display = "block";
+}
+
 
   function togglePause() {
     if (gameOver || waitingForStart || countdownActive) return;
@@ -323,7 +361,7 @@
     pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
     context.fillStyle = "white";
-    context.font = "45px 'Press Start 2P', monospace";
+    context.font = "55px 'Press Start 2P', monospace";
     context.fillText(Math.floor(score), board.width / 2 - context.measureText(Math.floor(score)).width / 2, board.height / 4);
   }
 
@@ -395,15 +433,16 @@
       }
     }
 
-    function addToScoreboard() {
-      const name = prompt("Confirm name to add to scoreboard:", playerName);
-      if (name) {
-        localStorage.setItem("flappyHighScore_" + name.trim(), Math.floor(score));
-        switchTab("scoreboard");
-      }
-    }
-
-
-  </script>
+function addToScoreboard() {
+  const name = prompt("Confirm name to add to scoreboard:", playerName)?.trim();
+  if (name) {
+    const key = "flappyScores_" + name;
+    const existing = JSON.parse(localStorage.getItem(key)) || [];
+    existing.push(Math.floor(score));
+    localStorage.setItem(key, JSON.stringify(existing));
+    switchTab("scoreboard");
+  }
+}
+</script>
 </body>
 </html>
