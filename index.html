@@ -60,15 +60,19 @@
     }
 
     #pauseBtn {
-      font-family: 'Press Start 2P', monospace;
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
       font-size: 12px;
       padding: 5px 20px;
       background: cyan;
       border: 2px solid black;
+      font-family: 'Press Start 2P', monospace;
       border-radius: 10px;
       cursor: pointer;
+      z-index: 2;
     }
-
     #scoreboard {
       display: none;
       color: white;
@@ -171,8 +175,8 @@
 
   <canvas id="board"></canvas>
 
-  <!-- Moved pause button under canvas -->
-  <div id="pauseContainer">
+  <div id="gameContainer">
+    <canvas id="board" width="360" height="640"></canvas>
     <button id="pauseBtn">Pause</button>
   </div>
 
@@ -204,9 +208,6 @@
 
   <!-- Script -->
   <script>
-    // Keep your JavaScript exactly as it was.
-    // Only change: remove `pauseBtn` click from inside `.tabs`
-    // (you already have it outside now, so the line below still works)
     document.getElementById("pauseBtn").onclick = togglePause;
   </script>
  <script>
@@ -303,7 +304,7 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
     } else {
       countdownActive = true;
       document.getElementById("pauseBtn").textContent = "Pause";
-      let countdown = 3;
+      let countdown = 2;
       const countdownDiv = document.getElementById("countdown");
       countdownDiv.style.display = "block";
       countdownDiv.textContent = countdown;
