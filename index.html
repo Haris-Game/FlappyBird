@@ -217,12 +217,15 @@
   const birdWidth = 34, birdHeight = 24;
   const birdX = boardWidth / 8, birdY = boardHeight / 2;
   let birdImg = new Image();
+  let birdBlinkImg = new Image();
   let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
   let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth, pipeY = 0;
   let topPipeImg = new Image(), bottomPipeImg = new Image();
   let velocityX = 0, velocityY = 0, gravity = 0.4;
   let gameOver = false, score = 0, paused = false, countdownActive = false;
   let muted = false;
+   let blinkTimer = 0;
+let isBlinking = false;
   let playerName = prompt("Enter your name:")?.trim() || "Player";
 let playerScores = JSON.parse(localStorage.getItem("flappyScores_" + playerName)) || [];
 let highScore = playerScores.length ? Math.max(...playerScores) : 0;
@@ -235,6 +238,7 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
     context = board.getContext("2d");
 
     birdImg.src = "flappybird.gif";
+    birdBlinkImg.src = "BlinkingEyes.png";
     topPipeImg.src = "toppipe.png";
     bottomPipeImg.src = "bottompipe.png";
 
@@ -341,8 +345,18 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
       bird.y = birdY + floatAmplitude * Math.sin(Date.now() * floatFrequency);
     }
 
-    context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+blinkTimer += 1;
 
+if (blinkTimer >= 60) { // ~1 second (60 frames)
+  isBlinking = true;
+}
+if (blinkTimer >= 70) { // blink lasts short time
+  isBlinking = false;
+  blinkTimer = 0;
+}
+
+let currentBirdImg = isBlinking ? birdBlinkImg : birdImg;
+context.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
     if (!waitingForStart && bird.y + bird.height > board.height) return handleGameOver();
 
     for (let i = 0; i < pipeArray.length; i++) {
