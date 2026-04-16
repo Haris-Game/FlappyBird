@@ -224,9 +224,9 @@
   let velocityX = 0, velocityY = 0, gravity = 0.4;
   let gameOver = false, score = 0, paused = false, countdownActive = false;
   let muted = false;
-   let blinkTimer = 0;
+let lastBlinkTime = 0;
 let isBlinking = false;
-  let playerName = prompt("Enter your name:")?.trim() || "Player";
+let playerName = prompt("Enter your name:")?.trim() || "Player";
 let playerScores = JSON.parse(localStorage.getItem("flappyScores_" + playerName)) || [];
 let highScore = playerScores.length ? Math.max(...playerScores) : 0;
   let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
@@ -334,7 +334,16 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
     if (gameOver || paused) return;
 
     context.clearRect(0, 0, board.width, board.height);
+let now = Date.now();
 
+if (now - lastBlinkTime > 1000) { // every 1 second
+  isBlinking = true;
+}
+
+if (isBlinking && now - lastBlinkTime > 1100) { // blink lasts 0.1 sec
+  isBlinking = false;
+  lastBlinkTime = now;
+}
     if (!waitingForStart) {
       velocityY += gravity;
       bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
@@ -344,18 +353,7 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
       let floatFrequency = 0.005;
       bird.y = birdY + floatAmplitude * Math.sin(Date.now() * floatFrequency);
     }
-
-blinkTimer += 1;
-
-if (blinkTimer >= 60) { // ~1 second (60 frames)
-  isBlinking = true;
-}
-if (blinkTimer >= 70) { // blink lasts short time
-  isBlinking = false;
-  blinkTimer = 0;
-}
-
-let currentBirdImg = isBlinking ? birdBlinkImg : birdImg;
+    let currentBirdImg = isBlinking ? birdBlinkImg : birdImg;
 context.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
     if (!waitingForStart && bird.y + bird.height > board.height) return handleGameOver();
 
