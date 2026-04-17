@@ -249,6 +249,22 @@ let isBlinking = false;
 let playerName = prompt("Enter your name:")?.trim() || "Player";
   let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
+   let currentUser = null;
+let currentUsername = null;
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+
+    const doc = await db.collection("users").doc(user.uid).get();
+    currentUsername = doc.data().username;
+
+  } else {
+    currentUser = null;
+    currentUsername = null;
+  }
+});
+
   window.onload = () => {
     board = document.getElementById("board");
     board.width = boardWidth;
@@ -499,6 +515,50 @@ async function addToScoreboard() {
     console.error(err);
     alert("Error saving score");
   }
+}
+   async function register(username, password) {
+  try {
+    const cleanUsername = username.trim().toLowerCase();
+
+    const fakeEmail = cleanUsername + "@game.local";
+
+    const userCredential = await auth.createUserWithEmailAndPassword(fakeEmail, password);
+    const user = userCredential.user;
+
+    await db.collection("users").doc(user.uid).set({
+      username: cleanUsername,
+      createdAt: Date.now()
+    });
+    if (await isUsernameTaken(cleanUsername)) {
+  alert("Username already taken!");
+  return;
+}
+
+    alert("Registered successfully!");
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function login(username, password) {
+  try {
+    const cleanUsername = username.trim().toLowerCase();
+
+    const fakeEmail = cleanUsername + "@game.local";
+
+    await auth.signInWithEmailAndPassword(fakeEmail, password);
+
+    alert("Login successful!");
+  } catch (err) {
+    alert("Wrong username or password");
+  }
+}
+   async function isUsernameTaken(username) {
+  const snap = await db.collection("users")
+    .where("username", "==", username.toLowerCase())
+    .get();
+
+  return !snap.empty;
 }
 </script>
 </body>
