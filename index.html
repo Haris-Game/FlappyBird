@@ -166,6 +166,57 @@
       0% { transform: translate(-50%, -50%) scale(2); opacity: 1; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
     }
+
+    .auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  z-index: 999;
+}
+
+.auth-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #111;
+  color: white;
+  padding: 20px;
+  border: 3px solid cyan;
+  border-radius: 10px;
+  z-index: 1000;
+  width: 260px;
+  text-align: center;
+}
+
+.auth-modal input {
+  width: 90%;
+  padding: 8px;
+  margin: 8px 0;
+  font-family: monospace;
+}
+
+.auth-modal button {
+  width: 100%;
+  padding: 8px;
+  background: cyan;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.auth-modal p {
+  font-size: 10px;
+  cursor: pointer;
+  color: gold;
+}
+
+.hidden {
+  display: none;
+}
   </style>
 </head>
 <body>
@@ -176,10 +227,7 @@
 
   <canvas id="board"></canvas>
 
-  <div id="gameContainer">
-    <canvas id="board" width="0" height="0"></canvas>
     <button id="pauseBtn">Pause</button>
-  </div>
 
   <div id="scoreboard"></div>
 
@@ -199,6 +247,38 @@
 
   <div id="countdown"></div>
 
+<!-- Overlay -->
+<div id="authOverlay" class="auth-overlay hidden"></div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="auth-modal hidden">
+  <h2>Login</h2>
+
+  <input id="loginUsername" placeholder="Username" />
+  <input id="loginPassword" type="password" placeholder="Password" />
+
+  <button onclick="handleLogin()">Login</button>
+
+  <p onclick="switchToRegister()">Create account</p>
+  <p onclick="closeAuth()">Close</p>
+</div>
+
+<!-- REGISTER MODAL -->
+<div id="registerModal" class="auth-modal hidden">
+  <h2>Register</h2>
+
+  <input id="registerUsername" placeholder="Username" />
+  <input id="registerPassword" type="password" placeholder="Password" />
+
+  <button onclick="handleRegister()">Register</button>
+
+  <p onclick="switchToLogin()">Already have account?</p>
+  <p onclick="closeAuth()">Close</p>
+</div>
+
+<!-- LOGIN BUTTON (optional top bar) -->
+<button id="authBtn" onclick="openLogin()">Login</button>
+
   <!-- Audio -->
   <audio id="bgm" loop src="bgm_mario.mp3"></audio>
   <audio id="sfx_wing" src="sfx_wing.wav"></audio>
@@ -211,6 +291,7 @@
 <!-- Firebase Script -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <!-- Firebase config -->
 <script>
 const firebaseConfig = {
@@ -225,11 +306,24 @@ const firebaseConfig = {
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
+const auth = firebase.auth();
 </script>
 <!--Game Script-->  
 
  <script>
+   let authReady = false;
+
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    openLogin();
+    gameOver = true; // optional lock
+  } else {
+    closeAuth();
+    gameOver = false;
+  }
+});
   let waitingForStart = true;
   let board, context;
   const boardWidth = 360, boardHeight = 640;
@@ -243,10 +337,14 @@ const db = firebase.firestore();
   let velocityX = 0, velocityY = 0, gravity = 0.4;
   let gameOver = false, score = 0, paused = false, countdownActive = false;
   let muted = false;
-   let highScore = 0;
-let lastBlinkTime = 0;
+let highScore = Number(localStorage.getItem("highScore")) || 0;
 let isBlinking = false;
-let playerName = prompt("Enter your name:")?.trim() || "Player";
+let playerName = sessionStorage.getItem("playerName");
+
+if (!playerName) {
+  playerName = prompt("Enter your name:")?.trim() || "Player";
+  sessionStorage.setItem("playerName", playerName);
+}
   let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
    let currentUser = null;
@@ -263,6 +361,28 @@ auth.onAuthStateChanged(async (user) => {
     currentUser = null;
     currentUsername = null;
   }
+});
+   // =====================
+// AUTH STATE
+// =====================
+let currentUser = null;
+let currentUsername = null;
+
+// Show login automatically if logged out
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    currentUser = null;
+    currentUsername = null;
+    openLogin();
+    return;
+  }
+
+  currentUser = user;
+
+  const doc = await db.collection("users").doc(user.uid).get();
+  currentUsername = doc.exists ? doc.data().username : "Player";
+
+  closeAuth();
 });
 
   window.onload = () => {
@@ -292,7 +412,6 @@ birdBlinkImg.src = "ClosedEyes.png";
     document.addEventListener("keydown", function(e) {
       if (gameOver && e.code === "KeyR") restartGame();
     });
-
     requestAnimationFrame(update);
     setInterval(placePipes, 1500);
   };
@@ -383,7 +502,7 @@ context.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
       context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
 
       if (!pipe.passed && bird.x > pipe.x + pipe.width) {
-        score += 0.5;
+        score += 1;
         pipe.passed = true;
         sfxPoint.play();
       }
@@ -436,10 +555,11 @@ context.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
     sfxDie.play();
     bgm.pause();
     document.getElementById("finalScore").textContent = Math.floor(score);
-
-    if (score > highScore) {
+if (score > highScore) {
   highScore = score;
 }
+
+localStorage.setItem("highScore", highScore);
 
     document.getElementById("highScore").textContent = Math.floor(highScore);
     document.getElementById("gameOverModal").classList.add("show");
@@ -488,13 +608,18 @@ async function showScoreboard() {
 async function addToScoreboard() {
   const name = prompt("Enter your name:", playerName)?.trim();
   if (!name) return;
+  
+  if (!currentUser) {
+  alert("You must be logged in!");
+  return;
+}
 
   try {
     // STEP 1: check if name already exists
-    const snapshot = await db.collection("scores")
-      .where("name", "==", name)
-      .limit(1)
-      .get();
+const snapshot = await db.collection("users")
+  .where("username", "==", name.toLowerCase())
+  .limit(1)
+  .get();
 
     if (!snapshot.empty) {
       alert("❌ Username already taken! Choose another one.");
@@ -502,11 +627,12 @@ async function addToScoreboard() {
     }
 
     // STEP 2: add score if name is unique
-    await db.collection("scores").add({
-      name: name,
-      score: Math.floor(score),
-      timestamp: Date.now()
-    });
+await db.collection("scores").add({
+  uid: currentUser.uid,
+  name: auth.currentUser?.displayName || currentUsername,
+  score: Math.floor(score),
+  timestamp: Date.now()
+});
 
     alert("✅ Score added to GLOBAL leaderboard!");
     switchTab("scoreboard");
@@ -516,50 +642,127 @@ async function addToScoreboard() {
     alert("Error saving score");
   }
 }
-   async function register(username, password) {
-  try {
-    const cleanUsername = username.trim().toLowerCase();
+async function register(username, password) {
+  const cleanUsername = username.trim().toLowerCase();
 
-    const fakeEmail = cleanUsername + "@game.local";
-
-    const userCredential = await auth.createUserWithEmailAndPassword(fakeEmail, password);
-    const user = userCredential.user;
-
-    await db.collection("users").doc(user.uid).set({
-      username: cleanUsername,
-      createdAt: Date.now()
-    });
-    if (await isUsernameTaken(cleanUsername)) {
-  alert("Username already taken!");
-  return;
-}
-
-    alert("Registered successfully!");
-  } catch (err) {
-    alert(err.message);
+  if (!cleanUsername || !password) {
+    alert("Fill all fields");
+    return;
   }
+
+  const taken = await db.collection("users")
+    .where("username", "==", cleanUsername)
+    .limit(1)
+    .get();
+
+  if (!taken.empty) {
+    alert("❌ Username already taken!");
+    return;
+  }
+
+  const email = cleanUsername + "@game.local";
+
+  const userCred = await auth.createUserWithEmailAndPassword(email, password);
+
+  await db.collection("users").doc(userCred.user.uid).set({
+    username: cleanUsername,
+    createdAt: Date.now()
+  });
+
+  alert("✅ Registered successfully!");
 }
-
 async function login(username, password) {
+  const cleanUsername = username.trim().toLowerCase();
+
+  if (!cleanUsername || !password) {
+    alert("Fill all fields");
+    return;
+  }
+
+  const email = cleanUsername + "@game.local";
+
   try {
-    const cleanUsername = username.trim().toLowerCase();
-
-    const fakeEmail = cleanUsername + "@game.local";
-
-    await auth.signInWithEmailAndPassword(fakeEmail, password);
-
+    await auth.signInWithEmailAndPassword(email, password);
     alert("Login successful!");
   } catch (err) {
     alert("Wrong username or password");
   }
-}
-   async function isUsernameTaken(username) {
+}   async function isUsernameTaken(username) {
   const snap = await db.collection("users")
     .where("username", "==", username.toLowerCase())
     .get();
 
   return !snap.empty;
 }
+   function logout() {
+  auth.signOut();
+}
+function openLogin() {
+  document.getElementById("authOverlay").classList.remove("hidden");
+  document.getElementById("loginModal").classList.remove("hidden");
+  document.getElementById("registerModal").classList.add("hidden");
+}
+
+function openRegister() {
+  document.getElementById("authOverlay").classList.remove("hidden");
+  document.getElementById("registerModal").classList.remove("hidden");
+  document.getElementById("loginModal").classList.add("hidden");
+}
+
+function closeAuth() {
+  document.getElementById("authOverlay").classList.add("hidden");
+  document.getElementById("loginModal").classList.add("hidden");
+  document.getElementById("registerModal").classList.add("hidden");
+}
+
+function switchToRegister() {
+  openRegister();
+}
+
+function switchToLogin() {
+  openLogin();
+}
+
+// click outside closes modal
+document.getElementById("authOverlay").onclick = closeAuth;
+   
+async function handleRegister() {
+  const username = document.getElementById("registerUsername").value;
+  const password = document.getElementById("registerPassword").value;
+
+  await register(username, password);
+  closeAuth();
+}
+
+async function handleLogin() {
+  const username = document.getElementById("loginUsername").value;
+  const password = document.getElementById("loginPassword").value;
+
+  await login(username, password);
+  closeAuth();
+}
+   auth.onAuthStateChanged(user => {
+  if (!user) {
+    openLogin();
+  } else {
+    closeAuth();
+  }
+});
+async function handleLogin() {
+  const username = document.getElementById("loginUsername").value;
+  const password = document.getElementById("loginPassword").value;
+
+  if (!username || !password) {
+    alert("Fill all fields");
+    return;
+  }
+
+  await login(username, password);
+  closeAuth();
+}
+   window.onload = () => {
+  document.getElementById("authOverlay").onclick = closeAuth;
+};
 </script>
 </body>
 </html>
