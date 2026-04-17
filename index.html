@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Flappy Bird</title>
+  <title>Flappy Bird Pro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="OpenEyes.png">
   <style>
     body {
       font-family: 'Press Start 2P', monospace;
@@ -18,6 +17,7 @@
       text-align: center;
     }
 
+    /* Tab Styling */
     .tabs {
       position: fixed;
       top: 0;
@@ -38,54 +38,47 @@
       cursor: pointer;
     }
 
-    .tabs button.active {
-      background: gold;
-    }
+    .tabs button.active { background: gold; }
 
     #board {
       display: block;
-      margin: 60px auto 0 auto;
+      margin: 80px auto 20px auto;
       background: url("flappybirdbg.png") no-repeat center/cover;
-      position: relative;
-      z-index: 1;
-      max-width: 100%;
-      height: auto;
       border-radius: 20px;
       border: 10px solid cyan;
-    }
-
-    #pauseContainer {
-      display: flex;
-      justify-content: center;
-      margin-top: 10px;
+      max-width: 90vw;
+      max-height: 80vh;
     }
 
     #pauseBtn {
       position: fixed;
-      bottom: 10px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 12px;
-      padding: 5px 20px;
+      padding: 10px 20px;
       background: cyan;
       border: 2px solid black;
       font-family: 'Press Start 2P', monospace;
       border-radius: 10px;
       cursor: pointer;
-      z-index: 2;
+      z-index: 5;
     }
+
     #scoreboard {
       display: none;
       color: white;
       font-family: 'Courier New', monospace;
       font-size: 18px;
       padding: 20px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.85);
+      border: 3px solid gold;
       border-radius: 10px;
-      width: 300px;
-      margin: 80px auto 0;
+      width: 320px;
+      margin: 100px auto;
     }
 
+    /* Modals */
     #gameOverModal {
       display: none;
       position: fixed;
@@ -93,64 +86,36 @@
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 999;
-      font-family: 'Press Start 2P', cursive;
       text-align: center;
     }
 
+    #gameOverModal.show { display: block; }
+
     .popup {
-      display: inline-block;
       background-color: #f5deb3;
-      border: 2px solid #000000;
-      padding: 12px 24px;
-      box-shadow: 0 2px #333;
+      border: 4px solid #000;
+      padding: 20px;
       margin-bottom: 20px;
     }
 
-    .score-label {
-      color: #ff6347;
-      font-size: 8px;
-      margin-top: 4px;
-      margin-bottom: 2px;
-    }
-
-    .score-value {
-      color: #000000;
-      font-size: 28px;
-      line-height: 28px;
-      margin-bottom: 4px;
-    }
-
-    .buttons {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
+    .score-label { color: #ff6347; font-size: 10px; margin: 10px 0 5px; }
+    .score-value { color: #000; font-size: 32px; margin-bottom: 10px; }
 
     .pixel-btn {
       background-color: #b55220;
-      border: 2px solid #ffffff;
+      border: 2px solid #fff;
       color: white;
       font-family: 'Press Start 2P', cursive;
-      font-size: 8px;
-      padding: 10px 14px;
+      font-size: 10px;
+      padding: 12px;
       cursor: pointer;
-      box-shadow: 2px 2px 0 #000;
-      text-shadow: 1px 1px 0 #000;
-      width: 240px;
-    }
-
-    .pixel-btn:hover {
-      filter: brightness(1.1);
-    }
-
-    #gameOverModal.show {
-      display: block;
+      margin: 5px;
+      width: 260px;
+      box-shadow: 3px 3px 0 #000;
     }
 
     #countdown {
       font-size: 96px;
-      font-weight: bold;
       color: white;
       position: absolute;
       top: 50%;
@@ -158,7 +123,6 @@
       transform: translate(-50%, -50%);
       display: none;
       z-index: 100;
-      pointer-events: none;
       animation: scaleFade 1s ease forwards;
     }
 
@@ -167,119 +131,80 @@
       100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
     }
 
+    /* Auth Styles */
     .auth-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-  z-index: 999;
-}
-
-.auth-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #111;
-  color: white;
-  padding: 20px;
-  border: 3px solid cyan;
-  border-radius: 10px;
-  z-index: 1000;
-  width: 260px;
-  text-align: center;
-}
-
-.auth-modal input {
-  width: 90%;
-  padding: 8px;
-  margin: 8px 0;
-  font-family: monospace;
-}
-
-.auth-modal button {
-  width: 100%;
-  padding: 8px;
-  background: cyan;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.auth-modal p {
-  font-size: 10px;
-  cursor: pointer;
-  color: gold;
-}
-
-.hidden {
-  display: none;
-}
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+    }
+    .auth-modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      color: white;
+      padding: 30px;
+      border: 4px solid cyan;
+      z-index: 2001;
+      width: 280px;
+      text-align: center;
+    }
+    .auth-modal input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+    .auth-modal button { width: 100%; padding: 10px; background: cyan; border: none; font-family: 'Press Start 2P'; font-size: 10px; cursor: pointer; }
+    .auth-modal p { font-size: 10px; color: gold; cursor: pointer; text-decoration: underline; margin-top: 15px; }
+    .hidden { display: none; }
+    #authBtn { position: fixed; top: 15px; right: 15px; z-index: 100; padding: 5px; font-size: 8px; font-family: 'Press Start 2P'; cursor: pointer;}
   </style>
 </head>
 <body>
+
   <div class="tabs">
-    <button id="gameTab" class="active">Game</button>
-    <button id="scoreboardTab">Scoreboard</button>
+    <button id="gameTab" class="active" onclick="switchTab('game')">Game</button>
+    <button id="scoreboardTab" onclick="switchTab('scoreboard')">Leaderboard</button>
   </div>
 
-  <canvas id="board"></canvas>
+  <button id="authBtn" onclick="handleAuthAction()">Login</button>
 
-    <button id="pauseBtn">Pause</button>
+  <canvas id="board"></canvas>
+  <button id="pauseBtn">Pause</button>
 
   <div id="scoreboard"></div>
 
   <div id="gameOverModal">
     <div class="popup">
       <div class="score-label">SCORE</div>
-      <div class="score-value" id="finalScore">0</div>
+      <div id="finalScore" class="score-value">0</div>
       <div class="score-label">BEST</div>
-      <div class="score-value" id="highScore">0</div>
+      <div id="highScore" class="score-value">0</div>
     </div>
     <div class="buttons">
       <button class="pixel-btn" onclick="restartGame()">RESTART</button>
-      <button class="pixel-btn" onclick="shareScore()">SHARE</button>
       <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
+      <button class="pixel-btn" onclick="shareScore()">SHARE</button>
     </div>
   </div>
 
   <div id="countdown"></div>
 
-<!-- Overlay -->
-<div id="authOverlay" class="auth-overlay hidden"></div>
+  <div id="authOverlay" class="auth-overlay hidden">
+    <div id="loginModal" class="auth-modal hidden">
+      <h2>Login</h2>
+      <input id="loginUsername" placeholder="Username" />
+      <input id="loginPassword" type="password" placeholder="Password" />
+      <button onclick="handleLogin()">Login</button>
+      <p onclick="openRegister()">Need an account? Register</p>
+    </div>
 
-<!-- LOGIN MODAL -->
-<div id="loginModal" class="auth-modal hidden">
-  <h2>Login</h2>
+    <div id="registerModal" class="auth-modal hidden">
+      <h2>Register</h2>
+      <input id="registerUsername" placeholder="Username" />
+      <input id="registerPassword" type="password" placeholder="Password" />
+      <button onclick="handleRegister()">Register</button>
+      <p onclick="openLogin()">Have an account? Login</p>
+    </div>
+  </div>
 
-  <input id="loginUsername" placeholder="Username" />
-  <input id="loginPassword" type="password" placeholder="Password" />
-
-  <button onclick="handleLogin()">Login</button>
-
-  <p onclick="switchToRegister()">Create account</p>
-  <p onclick="closeAuth()">Close</p>
-</div>
-
-<!-- REGISTER MODAL -->
-<div id="registerModal" class="auth-modal hidden">
-  <h2>Register</h2>
-
-  <input id="registerUsername" placeholder="Username" />
-  <input id="registerPassword" type="password" placeholder="Password" />
-
-  <button onclick="handleRegister()">Register</button>
-
-  <p onclick="switchToLogin()">Already have account?</p>
-  <p onclick="closeAuth()">Close</p>
-</div>
-
-<!-- LOGIN BUTTON (optional top bar) -->
-<button id="authBtn" onclick="openLogin()">Login</button>
-
-  <!-- Audio -->
   <audio id="bgm" loop src="bgm_mario.mp3"></audio>
   <audio id="sfx_wing" src="sfx_wing.wav"></audio>
   <audio id="sfx_hit" src="sfx_hit.wav"></audio>
@@ -287,482 +212,277 @@
   <audio id="sfx_swooshing" src="sfx_swooshing.wav"></audio>
   <audio id="sfx_die" src="sfx_die.wav"></audio>
 
-  <!-- Script -->
-<!-- Firebase Script -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<!-- Firebase config -->
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
-  authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
-  projectId: "flappybirdleaderboard-186ad",
-  storageBucket: "flappybirdleaderboard-186ad.firebasestorage.app",
-  messagingSenderId: "623790359391",
-  appId: "1:623790359391:web:f62feff43af41642a72cea",
-  measurementId: "G-TJR0EHQLQN"
-};
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+  <script>
+    // 1. Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
+      authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
+      projectId: "flappybirdleaderboard-186ad",
+      storageBucket: "flappybirdleaderboard-186ad.firebasestorage.app",
+      messagingSenderId: "623790359391",
+      appId: "1:623790359391:web:f62feff43af41642a72cea"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
-const db = firebase.firestore();
-const auth = firebase.auth();
-</script>
-<!--Game Script-->  
+    // 2. Global Variables
+    let board, context;
+    const boardWidth = 360, boardHeight = 640;
+    const birdWidth = 34, birdHeight = 24;
+    let bird = { x: boardWidth / 8, y: boardHeight / 2, width: birdWidth, height: birdHeight };
+    
+    let birdImg = new Image(), birdBlinkImg = new Image();
+    let topPipeImg = new Image(), bottomPipeImg = new Image();
+    
+    let pipeArray = [];
+    let pipeWidth = 64, pipeHeight = 512;
+    let velocityX = -2, velocityY = 0, gravity = 0.4;
+    
+    let gameOver = false, score = 0, paused = false, countdownActive = false, waitingForStart = true;
+    let highScore = localStorage.getItem("highScore") || 0;
+    let currentUser = null, currentUsername = null;
 
- <script>
-   let authReady = false;
+    // 3. Game Initialization
+    window.onload = () => {
+      board = document.getElementById("board");
+      board.width = boardWidth; board.height = boardHeight;
+      context = board.getContext("2d");
 
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    openLogin();
-    gameOver = true; // optional lock
-  } else {
-    closeAuth();
-    gameOver = false;
-  }
-});
-  let waitingForStart = true;
-  let board, context;
-  const boardWidth = 360, boardHeight = 640;
-  const birdWidth = 34, birdHeight = 24;
-  const birdX = boardWidth / 8, birdY = boardHeight / 2;
-  let birdImg = new Image();
-  let birdBlinkImg = new Image();
-  let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
-  let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth, pipeY = 0;
-  let topPipeImg = new Image(), bottomPipeImg = new Image();
-  let velocityX = 0, velocityY = 0, gravity = 0.4;
-  let gameOver = false, score = 0, paused = false, countdownActive = false;
-  let muted = false;
-let highScore = Number(localStorage.getItem("highScore")) || 0;
-let isBlinking = false;
-let playerName = sessionStorage.getItem("playerName");
+      birdImg.src = "OpenEyes.png";
+      birdBlinkImg.src = "ClosedEyes.png";
+      topPipeImg.src = "toppipe.png";
+      bottomPipeImg.src = "bottompipe.png";
 
-if (!playerName) {
-  playerName = prompt("Enter your name:")?.trim() || "Player";
-  sessionStorage.setItem("playerName", playerName);
-}
-  let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
+      document.getElementById("pauseBtn").onclick = togglePause;
+      document.addEventListener("keydown", moveBird);
+      board.addEventListener("touchstart", (e) => { e.preventDefault(); moveBird(e); });
 
-   let currentUser = null;
-let currentUsername = null;
+      requestAnimationFrame(update);
+      setInterval(placePipes, 1500);
+    };
 
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    currentUser = user;
-
-    const doc = await db.collection("users").doc(user.uid).get();
-    currentUsername = doc.data().username;
-
-  } else {
-    currentUser = null;
-    currentUsername = null;
-  }
-});
-   // =====================
-// AUTH STATE
-// =====================
-let currentUser = null;
-let currentUsername = null;
-
-// Show login automatically if logged out
-auth.onAuthStateChanged(async (user) => {
-  if (!user) {
-    currentUser = null;
-    currentUsername = null;
-    openLogin();
-    return;
-  }
-
-  currentUser = user;
-
-  const doc = await db.collection("users").doc(user.uid).get();
-  currentUsername = doc.exists ? doc.data().username : "Player";
-
-  closeAuth();
-});
-
-  window.onload = () => {
-    board = document.getElementById("board");
-    board.width = boardWidth;
-    board.height = boardHeight;
-    context = board.getContext("2d");
-
-birdImg.src = "OpenEyes.png";
-birdBlinkImg.src = "ClosedEyes.png";
-    topPipeImg.src = "toppipe.png";
-    bottomPipeImg.src = "bottompipe.png";
-
-    bgm = document.getElementById("bgm");
-    sfxWing = document.getElementById("sfx_wing");
-    sfxHit = document.getElementById("sfx_hit");
-    sfxPoint = document.getElementById("sfx_point");
-    sfxSwooshing = document.getElementById("sfx_swooshing");
-    sfxDie = document.getElementById("sfx_die");
-
-    document.getElementById("pauseBtn").onclick = togglePause;
-    document.getElementById("gameTab").onclick = () => switchTab("game");
-    document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
-
-    document.addEventListener("keydown", moveBird);
-    document.addEventListener("touchstart", moveBird);
-    document.addEventListener("keydown", function(e) {
-      if (gameOver && e.code === "KeyR") restartGame();
+    // 4. Auth Logic
+    auth.onAuthStateChanged(async (user) => {
+      const authBtn = document.getElementById("authBtn");
+      if (user) {
+        currentUser = user;
+        const doc = await db.collection("users").doc(user.uid).get();
+        currentUsername = doc.exists ? doc.data().username : "Player";
+        authBtn.textContent = "Logout (" + currentUsername + ")";
+        closeAuth();
+      } else {
+        currentUser = null;
+        currentUsername = null;
+        authBtn.textContent = "Login";
+        openLogin();
+      }
     });
-    requestAnimationFrame(update);
-    setInterval(placePipes, 1500);
-  };
 
- function switchTab(tab) {
-  const gameTab = document.getElementById("gameTab");
-  const scoreTab = document.getElementById("scoreboardTab");
-  const boardEl = document.getElementById("board");
-  const scoreboard = document.getElementById("scoreboard");
+    async function handleLogin() {
+      const u = document.getElementById("loginUsername").value.trim().toLowerCase();
+      const p = document.getElementById("loginPassword").value;
+      if(!u || !p) return alert("Fill all fields");
+      try {
+        await auth.signInWithEmailAndPassword(u + "@game.local", p);
+      } catch (e) { alert("Login failed: " + e.message); }
+    }
 
-  gameTab.classList.remove("active");
-  scoreTab.classList.remove("active");
+    async function handleRegister() {
+      const u = document.getElementById("registerUsername").value.trim().toLowerCase();
+      const p = document.getElementById("registerPassword").value;
+      if(!u || p.length < 6) return alert("Username required & Password min 6 chars");
+      
+      try {
+        const snap = await db.collection("users").where("username", "==", u).get();
+        if(!snap.empty) return alert("Username taken");
+        
+        const res = await auth.createUserWithEmailAndPassword(u + "@game.local", p);
+        await db.collection("users").doc(res.user.uid).set({ username: u, createdAt: Date.now() });
+      } catch (e) { alert("Registration failed"); }
+    }
 
-  if (tab === "game") {
-    gameTab.classList.add("active");
-    boardEl.style.display = "block";
-    scoreboard.style.display = "none";
-  } else {
-    scoreTab.classList.add("active");
-    boardEl.style.display = "none";
-    showScoreboard();
-  }
-}
+    function handleAuthAction() {
+      if(currentUser) auth.signOut();
+      else openLogin();
+    }
 
+    function openLogin() { 
+      document.getElementById("authOverlay").classList.remove("hidden");
+      document.getElementById("loginModal").classList.remove("hidden");
+      document.getElementById("registerModal").classList.add("hidden");
+    }
+    function openRegister() {
+      document.getElementById("registerModal").classList.remove("hidden");
+      document.getElementById("loginModal").classList.add("hidden");
+    }
+    function closeAuth() { document.getElementById("authOverlay").classList.add("hidden"); }
 
-  function togglePause() {
-    if (gameOver || waitingForStart || countdownActive) return;
+    // 5. Game Loop & Logic
+    function update() {
+      requestAnimationFrame(update);
+      if (gameOver || paused || countdownActive) return;
 
-    if (!paused) {
-      paused = true;
-      document.getElementById("pauseBtn").textContent = "Play";
-    } else {
+      context.clearRect(0, 0, board.width, board.height);
+
+      if (!waitingForStart) {
+        velocityY += gravity;
+        bird.y = Math.max(bird.y + velocityY, 0);
+      } else {
+        bird.y = (boardHeight / 2) + Math.sin(Date.now() * 0.005) * 10;
+      }
+
+      // Blink effect
+      let isBlinking = (Date.now() % 4000) < 200;
+      context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+
+      if (bird.y + bird.height > boardHeight) return handleGameOver();
+
+      for (let i = 0; i < pipeArray.length; i++) {
+        let pipe = pipeArray[i];
+        if (!waitingForStart) pipe.x += velocityX;
+        context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+
+        if (!pipe.passed && bird.x > pipe.x + pipe.width) {
+          score += 0.5; // Two pipes (top/bottom) per gap
+          pipe.passed = true;
+          document.getElementById("sfx_point").play();
+        }
+        if (detectCollision(bird, pipe)) return handleGameOver();
+      }
+
+      pipeArray = pipeArray.filter(p => p.x + pipeWidth > 0);
+
+      context.fillStyle = "white";
+      context.font = "40px 'Press Start 2P'";
+      let scoreText = Math.floor(score).toString();
+      context.fillText(scoreText, boardWidth/2 - context.measureText(scoreText).width/2, 150);
+    }
+
+    function placePipes() {
+      if (gameOver || paused || waitingForStart) return;
+      let randomY = -pipeHeight/4 - Math.random() * (pipeHeight/2);
+      let gap = 160;
+      pipeArray.push({ img: topPipeImg, x: boardWidth, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
+      pipeArray.push({ img: bottomPipeImg, x: boardWidth, y: randomY + pipeHeight + gap, width: pipeWidth, height: pipeHeight, passed: false });
+    }
+
+    function moveBird(e) {
+      if (gameOver || paused || countdownActive) return;
+      if (waitingForStart) {
+        waitingForStart = false;
+        document.getElementById("bgm").play();
+      }
+      velocityY = -7;
+      let sfx = document.getElementById("sfx_wing");
+      sfx.currentTime = 0; sfx.play();
+    }
+
+    function detectCollision(a, b) {
+      return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    }
+
+    function handleGameOver() {
+      gameOver = true;
+      document.getElementById("sfx_hit").play();
+      document.getElementById("bgm").pause();
+      if (score > highScore) {
+        highScore = Math.floor(score);
+        localStorage.setItem("highScore", highScore);
+      }
+      document.getElementById("finalScore").textContent = Math.floor(score);
+      document.getElementById("highScore").textContent = highScore;
+      document.getElementById("gameOverModal").classList.add("show");
+    }
+
+    function restartGame() {
+      bird.y = boardHeight / 2;
+      pipeArray = [];
+      score = 0;
+      velocityY = 0;
+      gameOver = false;
+      waitingForStart = true;
+      document.getElementById("gameOverModal").classList.remove("show");
+    }
+
+    function togglePause() {
+      if (gameOver || waitingForStart) return;
+      if (!paused) {
+        paused = true;
+        document.getElementById("pauseBtn").textContent = "Resume";
+      } else {
+        startCountdown();
+      }
+    }
+
+    function startCountdown() {
       countdownActive = true;
-      document.getElementById("pauseBtn").textContent = "Pause";
-      let countdown = 2;
-      const countdownDiv = document.getElementById("countdown");
-      countdownDiv.style.display = "block";
-      countdownDiv.textContent = countdown;
-
-      const interval = setInterval(() => {
-        countdown--;
-        countdownDiv.textContent = countdown;
-        countdownDiv.style.animation = "none";
-        void countdownDiv.offsetWidth; // trigger reflow
-        countdownDiv.style.animation = "scaleFade 1s ease forwards";
-        if (countdown <= 0) {
-          clearInterval(interval);
-          countdownDiv.style.display = "none";
+      let count = 3;
+      const cdDiv = document.getElementById("countdown");
+      cdDiv.style.display = "block";
+      cdDiv.textContent = count;
+      
+      let timer = setInterval(() => {
+        count--;
+        if(count <= 0) {
+          clearInterval(timer);
+          cdDiv.style.display = "none";
           countdownActive = false;
           paused = false;
+          document.getElementById("pauseBtn").textContent = "Pause";
+        } else {
+          cdDiv.textContent = count;
         }
       }, 1000);
     }
-  }
 
-  function update() {
-    requestAnimationFrame(update);
-    if (gameOver || paused) return;
-
-    context.clearRect(0, 0, board.width, board.height);
-let now = Date.now();
-
-// blink cycle settings
-    const blinkCycle = 4000;   // every 4 seconds
-const blinkDuration = 200; // blink only 0.2 sec
-
-let cycleTime = now % blinkCycle;
-isBlinking = cycleTime < blinkDuration;
-    if (!waitingForStart) {
-      velocityY += gravity;
-      bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
-      velocityX = -2;
-    } else {
-      let floatAmplitude = 10;
-      let floatFrequency = 0.005;
-      bird.y = birdY + floatAmplitude * Math.sin(Date.now() * floatFrequency);
-    }
-    let currentBirdImg = isBlinking ? birdBlinkImg : birdImg;
-context.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
-    if (!waitingForStart && bird.y + bird.height >= board.height) {
-  handleGameOver();
-  return;
-}
-
-    for (let i = 0; i < pipeArray.length; i++) {
-      let pipe = pipeArray[i];
-      if (!waitingForStart) pipe.x += velocityX;
-      context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
-
-      if (!pipe.passed && bird.x > pipe.x + pipe.width) {
-        score += 1;
-        pipe.passed = true;
-        sfxPoint.play();
-      }
-
-      if (detectCollision(bird, pipe)) return handleGameOver();
+    // 6. Leaderboard Logic
+    async function addToScoreboard() {
+      if (!currentUser) return alert("Login to save scores!");
+      try {
+        await db.collection("scores").add({
+          name: currentUsername,
+          score: Math.floor(score),
+          timestamp: Date.now()
+        });
+        alert("Score saved!");
+        switchTab('scoreboard');
+      } catch (e) { alert("Error saving score"); }
     }
 
-    pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
+    async function switchTab(tab) {
+      const boardEl = document.getElementById("board");
+      const scoreEl = document.getElementById("scoreboard");
+      document.getElementById("gameTab").classList.toggle("active", tab === 'game');
+      document.getElementById("scoreboardTab").classList.toggle("active", tab === 'scoreboard');
 
-    context.fillStyle = "white";
-    context.font = "55px 'Press Start 2P', monospace";
-    context.fillText(Math.floor(score), board.width / 2 - context.measureText(Math.floor(score)).width / 2, board.height / 4);
-  }
-
-  function placePipes() {
-    if (gameOver || paused || waitingForStart) return;
-    let randomY = pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
-    let opening = board.height / 4;
-
-    pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
-    pipeArray.push({ img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening, width: pipeWidth, height: pipeHeight, passed: false });
-  }
-
-  function moveBird(e) {
-    if (gameOver || paused || countdownActive) return;
-    if (e.type === "keydown" && !(e.code === "Space" || e.code === "ArrowUp")) return;
-
-    if (waitingForStart) {
-      waitingForStart = false;
-      if (!muted) {
-        bgm.currentTime = 0;
-        bgm.play();
-        sfxSwooshing.play();
+      if (tab === 'game') {
+        boardEl.style.display = "block";
+        scoreEl.style.display = "none";
+      } else {
+        boardEl.style.display = "none";
+        scoreEl.style.display = "block";
+        paused = true; // Pause game while viewing leaderboard
+        
+        const snap = await db.collection("scores").orderBy("score", "desc").limit(10).get();
+        let html = "<h3>TOP 10 GHOSTS</h3><hr>";
+        let i = 1;
+        snap.forEach(doc => {
+          html += `<p>${i++}. ${doc.data().name}: ${doc.data().score}</p>`;
+        });
+        scoreEl.innerHTML = html || "<p>No scores yet!</p>";
       }
     }
-
-    velocityY = -6;
-    sfxWing.currentTime = 0;
-    sfxWing.play();
-  }
-
-  function detectCollision(a, b) {
-    return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-  }
-
-  function handleGameOver() {
-    if (gameOver) return;
-    gameOver = true;
-    sfxHit.play();
-    sfxDie.play();
-    bgm.pause();
-    document.getElementById("finalScore").textContent = Math.floor(score);
-if (score > highScore) {
-  highScore = score;
-}
-
-localStorage.setItem("highScore", highScore);
-
-    document.getElementById("highScore").textContent = Math.floor(highScore);
-    document.getElementById("gameOverModal").classList.add("show");
-  }
-
-  function restartGame() {
-    document.getElementById("gameOverModal").classList.remove("show");
-    bird.y = birdY;
-    velocityY = 0;
-    pipeArray = [];
-    score = 0;
-    gameOver = false;
-    waitingForStart = true;
-    velocityX = 0;
-  }
 
     function shareScore() {
-      const text = `${playerName} scored ${Math.floor(score)} in Flappy Bird! Can you beat that?`;
-      if (navigator.share) {
-        navigator.share({ title: "Flappy Bird Score", text });
-      } else {
-        alert("Share API not supported. Copy this message:\n\n" + text);
-      }
+      const text = `I just scored ${Math.floor(score)} points in Flappy Bird!`;
+      if (navigator.share) navigator.share({ title: 'Flappy Bird', text: text });
+      else alert(text);
     }
-
-async function showScoreboard() {
-  const scoreboard = document.getElementById("scoreboard");
-
-  const snapshot = await db.collection("scores")
-    .orderBy("score", "desc")
-    .limit(10)
-    .get();
-
-  let html = "<h2>Global Top Scores</h2><ol>";
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    html += `<li>${data.name}: ${data.score}</li>`;
-  });
-
-  html += "</ol>";
-
-  scoreboard.innerHTML = html;
-  scoreboard.style.display = "block";
-}
-async function addToScoreboard() {
-  const name = prompt("Enter your name:", playerName)?.trim();
-  if (!name) return;
-  
-  if (!currentUser) {
-  alert("You must be logged in!");
-  return;
-}
-
-  try {
-    // STEP 1: check if name already exists
-const snapshot = await db.collection("users")
-  .where("username", "==", name.toLowerCase())
-  .limit(1)
-  .get();
-
-    if (!snapshot.empty) {
-      alert("❌ Username already taken! Choose another one.");
-      return;
-    }
-
-    // STEP 2: add score if name is unique
-await db.collection("scores").add({
-  uid: currentUser.uid,
-  name: auth.currentUser?.displayName || currentUsername,
-  score: Math.floor(score),
-  timestamp: Date.now()
-});
-
-    alert("✅ Score added to GLOBAL leaderboard!");
-    switchTab("scoreboard");
-
-  } catch (err) {
-    console.error(err);
-    alert("Error saving score");
-  }
-}
-async function register(username, password) {
-  const cleanUsername = username.trim().toLowerCase();
-
-  if (!cleanUsername || !password) {
-    alert("Fill all fields");
-    return;
-  }
-
-  const taken = await db.collection("users")
-    .where("username", "==", cleanUsername)
-    .limit(1)
-    .get();
-
-  if (!taken.empty) {
-    alert("❌ Username already taken!");
-    return;
-  }
-
-  const email = cleanUsername + "@game.local";
-
-  const userCred = await auth.createUserWithEmailAndPassword(email, password);
-
-  await db.collection("users").doc(userCred.user.uid).set({
-    username: cleanUsername,
-    createdAt: Date.now()
-  });
-
-  alert("✅ Registered successfully!");
-}
-async function login(username, password) {
-  const cleanUsername = username.trim().toLowerCase();
-
-  if (!cleanUsername || !password) {
-    alert("Fill all fields");
-    return;
-  }
-
-  const email = cleanUsername + "@game.local";
-
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-    alert("Login successful!");
-  } catch (err) {
-    alert("Wrong username or password");
-  }
-}   async function isUsernameTaken(username) {
-  const snap = await db.collection("users")
-    .where("username", "==", username.toLowerCase())
-    .get();
-
-  return !snap.empty;
-}
-   function logout() {
-  auth.signOut();
-}
-function openLogin() {
-  document.getElementById("authOverlay").classList.remove("hidden");
-  document.getElementById("loginModal").classList.remove("hidden");
-  document.getElementById("registerModal").classList.add("hidden");
-}
-
-function openRegister() {
-  document.getElementById("authOverlay").classList.remove("hidden");
-  document.getElementById("registerModal").classList.remove("hidden");
-  document.getElementById("loginModal").classList.add("hidden");
-}
-
-function closeAuth() {
-  document.getElementById("authOverlay").classList.add("hidden");
-  document.getElementById("loginModal").classList.add("hidden");
-  document.getElementById("registerModal").classList.add("hidden");
-}
-
-function switchToRegister() {
-  openRegister();
-}
-
-function switchToLogin() {
-  openLogin();
-}
-
-// click outside closes modal
-document.getElementById("authOverlay").onclick = closeAuth;
-   
-async function handleRegister() {
-  const username = document.getElementById("registerUsername").value;
-  const password = document.getElementById("registerPassword").value;
-
-  await register(username, password);
-  closeAuth();
-}
-
-async function handleLogin() {
-  const username = document.getElementById("loginUsername").value;
-  const password = document.getElementById("loginPassword").value;
-
-  await login(username, password);
-  closeAuth();
-}
-   auth.onAuthStateChanged(user => {
-  if (!user) {
-    openLogin();
-  } else {
-    closeAuth();
-  }
-});
-async function handleLogin() {
-  const username = document.getElementById("loginUsername").value;
-  const password = document.getElementById("loginPassword").value;
-
-  if (!username || !password) {
-    alert("Fill all fields");
-    return;
-  }
-
-  await login(username, password);
-  closeAuth();
-}
-   window.onload = () => {
-  document.getElementById("authOverlay").onclick = closeAuth;
-};
-</script>
+  </script>
 </body>
 </html>
