@@ -237,8 +237,8 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
     board.height = boardHeight;
     context = board.getContext("2d");
 
-    birdImg.src = "flappybird.gif";
-    birdBlinkImg.src = "BlinkingEye.png";
+birdImg.src = "OpenEyes.png";
+birdBlinkImg.src = "ClosedEyes.png";
     topPipeImg.src = "toppipe.png";
     bottomPipeImg.src = "bottompipe.png";
 
@@ -337,8 +337,8 @@ let highScore = playerScores.length ? Math.max(...playerScores) : 0;
 let now = Date.now();
 
 // blink cycle settings
-const blinkCycle = 5000;   // total cycle duration (5 seconds)
-const blinkDuration = 2000; // blink stays ON for 2 seconds
+    const blinkCycle = 4000;   // every 4 seconds
+const blinkDuration = 500; // blink only 0.2 sec
 
 let cycleTime = now % blinkCycle;
 isBlinking = cycleTime < blinkDuration;
