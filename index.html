@@ -469,20 +469,32 @@ async function showScoreboard() {
   scoreboard.innerHTML = html;
   scoreboard.style.display = "block";
 }
-
 async function addToScoreboard() {
   const name = prompt("Enter your name:", playerName)?.trim();
   if (!name) return;
 
   try {
+    // STEP 1: check if name already exists
+    const snapshot = await db.collection("scores")
+      .where("name", "==", name)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      alert("❌ Username already taken! Choose another one.");
+      return;
+    }
+
+    // STEP 2: add score if name is unique
     await db.collection("scores").add({
       name: name,
       score: Math.floor(score),
       timestamp: Date.now()
     });
 
-    alert("Score added to GLOBAL leaderboard!");
+    alert("✅ Score added to GLOBAL leaderboard!");
     switchTab("scoreboard");
+
   } catch (err) {
     console.error(err);
     alert("Error saving score");
