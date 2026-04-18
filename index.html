@@ -332,6 +332,7 @@ if (!playerId) {
         }, 1000);
       }
     }
+    
 
     function update() {
       requestAnimationFrame(update);
@@ -453,16 +454,19 @@ if (!playerId) {
     }
 
     async function addToScoreboard() {
-  const name = prompt("Enter your name:", playerName)?.trim();
+        const name = prompt("Enter your name:", playerName)?.trim();
   if (!name) return;
 
   const playerScore = Math.floor(score);
 
   try {
     // Check if player already exists
-    const query = await db.collection("scores")
-      .where("name", "==", name)
-      .get();
+    await db.collection("scores").doc(playerId).set({
+  id: playerId,
+  name: name,
+  score: playerScore,
+  timestamp: Date.now()
+}, { merge: true });
 
     if (!query.empty) {
       // Player exists → update ONLY if new score is higher
@@ -494,29 +498,11 @@ if (!playerId) {
     switchTab("scoreboard");
 
   } catch (err) {
-    console.error(err);
-    alert("Error saving score");
+    alert("Error saving score: " + err.message);
+console.error(err);
   }
 }
 
-    async function addToScoreboard() {
-      const name = prompt("Enter your name:", playerName)?.trim();
-      if (!name) return;
-
-      try {
-        await db.collection("scores").add({
-          name: name,
-          score: Math.floor(score),
-          timestamp: Date.now()
-        });
-
-        alert("Score added to GLOBAL leaderboard!");
-        switchTab("scoreboard");
-      } catch (err) {
-        console.error(err);
-        alert("Error saving score");
-      }
-    }
   </script>
 </body>
 </html>
