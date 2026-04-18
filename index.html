@@ -194,6 +194,11 @@
       <button class="pixel-btn" onclick="shareScore()">SHARE</button>
       <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
     </div>
+    <div>
+        <button onclick="showScoreboard('global')">Global</button>
+        <button onclick="showScoreboard('monthly')">Monthly</button>
+        <button onclick="showScoreboard('daily')">Daily</button>
+      </div>
   </div>
 
   <div id="countdown"></div>
@@ -265,7 +270,10 @@
 
       document.getElementById("pauseBtn").onclick = togglePause;
       document.getElementById("gameTab").onclick = () => switchTab("game");
-      document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
+      document.getElementById("scoreboardTab").onclick = () => {
+      switchTab("scoreboard");
+      showScoreboard("global");
+        };
 
       document.addEventListener("keydown", moveBird);
       document.addEventListener("touchstart", moveBird);
@@ -446,26 +454,62 @@
       }
     }
 
-    async function showScoreboard() {
-      const scoreboard = document.getElementById("scoreboard");
+    async function showScoreboard(type = "global") {
+  const scoreboard = document.getElementById("scoreboard");
 
-      const snapshot = await db.collection("scores")
-        .orderBy("score", "desc")
-        .limit(10)
-        .get();
+  const snapshot = await db.collection("scores")
+    .orderBy("score", "desc")
+    .get();
 
-      let html = "<h2>Global Top Scores</h2><ol>";
+  let now = Date.now();
+  let filtered = [];
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        html += `<li>${data.name}: ${data.score}</li>`;
-      });
+  snapshot.forEach(doc => {
+    const data = doc.data();
 
-      html += "</ol>";
-
-      scoreboard.innerHTML = html;
-      scoreboard.style.display = "block";
+    // FILTER BY TIME
+    if (type === "daily") {
+      if (now - data.timestamp > 86400000) return; // 24h
     }
+    if (type === "monthly") {
+      if (now - data.timestamp > 2592000000) return; // 30 days
+    }
+
+    filtered.push(data);
+  });
+
+  // REMOVE DUPLICATES (KEEP BEST SCORE PER PLAYER)
+  let bestScores = {};
+
+  filtered.forEach(entry => {
+    if (!bestScores[entry.name] || entry.score > bestScores[entry.name]) {
+      bestScores[entry.name] = entry.score;
+    }
+  });
+
+  // CONVERT BACK TO ARRAY
+  let finalScores = Object.entries(bestScores).map(([name, score]) => ({ name, score }));
+
+  // SORT AGAIN
+  finalScores.sort((a, b) => b.score - a.score);
+
+  // TAKE TOP 10
+  finalScores = finalScores.slice(0, 10);
+
+  // UI
+  let title = "🌍 Global Top Scores";
+  if (type === "daily") title = "📆 Daily Top Scores";
+  if (type === "monthly") title = "📅 Monthly Top Scores";
+
+  let html = `<h2>${title}</h2><ol>`;
+  finalScores.forEach(s => {
+    html += `<li>${s.name}: ${s.score}</li>`;
+  });
+  html += "</ol>";
+
+  scoreboard.innerHTML = html;
+  scoreboard.style.display = "block";
+}
 
     async function addToScoreboard() {
       const name = prompt("Enter your name:", playerName)?.trim();
