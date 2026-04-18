@@ -452,45 +452,36 @@ if (!playerId) {
         alert("Share API not supported. Copy this message:\n\n" + text);
       }
     }
-
-    async function addToScoreboard() {
-        const name = prompt("Enter your name:", playerName)?.trim();
+async function addToScoreboard() {
+  const name = prompt("Enter your name:", playerName)?.trim();
   if (!name) return;
 
   const playerScore = Math.floor(score);
 
   try {
-    // Check if player already exists
-    await db.collection("scores").doc(playerId).set({
-  id: playerId,
-  name: name,
-  score: playerScore,
-  timestamp: Date.now()
-}, { merge: true });
+    const docRef = db.collection("scores").doc(playerId);
+    const docSnap = await docRef.get();
 
-    if (!query.empty) {
-      // Player exists → update ONLY if new score is higher
-      const doc = query.docs[0];
-      const existingScore = doc.data().score;
+    if (docSnap.exists) {
+      const existingScore = docSnap.data().score;
 
       if (playerScore > existingScore) {
-        await db.collection("scores").doc(doc.id).update({
+        await docRef.update({
           score: playerScore,
+          name: name,
           timestamp: Date.now()
         });
         alert("New high score updated! 🔥");
       } else {
         alert("Score not higher than your best.");
       }
-
     } else {
-      // Player does NOT exist → create new entry
-      await db.collection("scores").add({
-  id: playerId,
-  name: name,
-  score: playerScore,
-  timestamp: Date.now()
-});
+      await docRef.set({
+        id: playerId,
+        name: name,
+        score: playerScore,
+        timestamp: Date.now()
+      });
 
       alert("Score added to leaderboard!");
     }
@@ -499,7 +490,7 @@ if (!playerId) {
 
   } catch (err) {
     alert("Error saving score: " + err.message);
-console.error(err);
+    console.error(err);
   }
 }
 
