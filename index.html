@@ -251,6 +251,46 @@ if (!playerId) {
   localStorage.setItem("flappyPlayerId", playerId);
 }
 
+async function showScoreboard() {
+  const scoreboard = document.getElementById("scoreboard");
+  scoreboard.style.display = "block";
+  scoreboard.innerHTML = "Loading...";
+
+  try {
+    const snapshot = await db.collection("scores")
+      .orderBy("score", "desc")
+      .limit(10)
+      .get();
+
+    if (snapshot.empty) {
+      scoreboard.innerHTML = "<p>No scores yet</p>";
+      return;
+    }
+
+    let html = "<h3>🏆 Leaderboard</h3>";
+
+    let rank = 1;
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+
+      html += `
+        <p>
+          ${rank}. ${data.name} - ${data.score}
+        </p>
+      `;
+
+      rank++;
+    });
+
+    scoreboard.innerHTML = html;
+
+  } catch (err) {
+    scoreboard.innerHTML = "Error loading leaderboard";
+    console.error(err);
+  }
+}
+    
     window.onload = () => {
       board = document.getElementById("board");
       board.width = boardWidth;
