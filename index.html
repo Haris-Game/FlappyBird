@@ -77,13 +77,15 @@
     #scoreboard {
       display: none;
       color: white;
-      font-family: 'Courier New', monospace;
-      font-size: 18px;
+      font-family: 'Press Start 2P', monospace; /* Changed to match theme */
+      font-size: 14px;
       padding: 20px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.85);
+      border: 4px solid cyan;
       border-radius: 10px;
-      width: 300px;
+      width: 320px;
       margin: 80px auto 0;
+      line-height: 1.6;
     }
 
     #gameOverModal {
@@ -237,59 +239,50 @@
     let gameOver = false, score = 0, paused = false, countdownActive = false;
     let muted = false;
 
-    // HIGH SCORE PERSISTENCE LOGIC
     let highScore = localStorage.getItem("flappyHighScore") || 0;
-
     let lastBlinkTime = 0;
     let isBlinking = false;
     let playerName = prompt("Enter your name:")?.trim() || "Player";
     let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
     let playerId = localStorage.getItem("flappyPlayerId");
 
-if (!playerId) {
-  playerId = crypto.randomUUID();
-  localStorage.setItem("flappyPlayerId", playerId);
-}
-
-async function showScoreboard() {
-  const scoreboard = document.getElementById("scoreboard");
-  scoreboard.style.display = "block";
-  scoreboard.innerHTML = "Loading...";
-
-  try {
-    const snapshot = await db.collection("scores")
-      .orderBy("score", "desc")
-      .limit(10)
-      .get();
-
-    if (snapshot.empty) {
-      scoreboard.innerHTML = "<p>No scores yet</p>";
-      return;
+    if (!playerId) {
+      playerId = crypto.randomUUID();
+      localStorage.setItem("flappyPlayerId", playerId);
     }
 
-    let html = "<h3>🏆 Leaderboard</h3>";
+    async function showScoreboard() {
+      const scoreboard = document.getElementById("scoreboard");
+      scoreboard.style.display = "block";
+      scoreboard.innerHTML = "Loading...";
 
-    let rank = 1;
+      try {
+        const snapshot = await db.collection("scores")
+          .orderBy("score", "desc")
+          .limit(10)
+          .get();
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
+        if (snapshot.empty) {
+          scoreboard.innerHTML = "<h3>🏆 Leaderboard</h3><p>No scores yet</p>";
+          return;
+        }
 
-      html += `
-        <p>
-          ${rank}. ${data.name} - ${data.score}
-        </p>
-      `;
+        let html = "<h3>🏆 Leaderboard</h3>";
+        let rank = 1;
 
-      rank++;
-    });
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          html += `<p style="text-align:left; font-size:10px;">${rank}. ${data.name.substring(0,10)}: ${data.score}</p>`;
+          rank++;
+        });
 
-    scoreboard.innerHTML = html;
+        scoreboard.innerHTML = html;
 
-  } catch (err) {
-    scoreboard.innerHTML = "Error loading leaderboard";
-    console.error(err);
-  }
-}
+      } catch (err) {
+        scoreboard.innerHTML = "Error loading leaderboard";
+        console.error(err);
+      }
+    }
     
     window.onload = () => {
       board = document.getElementById("board");
@@ -328,6 +321,7 @@ async function showScoreboard() {
       const scoreTab = document.getElementById("scoreboardTab");
       const boardEl = document.getElementById("board");
       const scoreboard = document.getElementById("scoreboard");
+      const pauseBtn = document.getElementById("pauseBtn");
 
       gameTab.classList.remove("active");
       scoreTab.classList.remove("active");
@@ -336,9 +330,12 @@ async function showScoreboard() {
         gameTab.classList.add("active");
         boardEl.style.display = "block";
         scoreboard.style.display = "none";
+        pauseBtn.style.display = "block";
       } else {
         scoreTab.classList.add("active");
         boardEl.style.display = "none";
+        pauseBtn.style.display = "none";
+        showScoreboard(); // CALLING THE FUNCTION HERE
       }
     }
 
@@ -491,48 +488,48 @@ async function showScoreboard() {
         alert("Share API not supported. Copy this message:\n\n" + text);
       }
     }
-async function addToScoreboard() {
-  const name = prompt("Enter your name:", playerName)?.trim();
-  if (!name) return;
 
-  const playerScore = Math.floor(score);
+    async function addToScoreboard() {
+      const name = prompt("Enter your name:", playerName)?.trim();
+      if (!name) return;
 
-  try {
-    const docRef = db.collection("scores").doc(playerId);
-    const docSnap = await docRef.get();
+      const playerScore = Math.floor(score);
 
-    if (docSnap.exists) {
-      const existingScore = docSnap.data().score;
+      try {
+        const docRef = db.collection("scores").doc(playerId);
+        const docSnap = await docRef.get();
 
-      if (playerScore > existingScore) {
-        await docRef.update({
-          score: playerScore,
-          name: name,
-          timestamp: Date.now()
-        });
-        alert("New high score updated! 🔥");
-      } else {
-        alert("Score not higher than your best.");
+        if (docSnap.exists) {
+          const existingScore = docSnap.data().score;
+
+          if (playerScore > existingScore) {
+            await docRef.update({
+              score: playerScore,
+              name: name,
+              timestamp: Date.now()
+            });
+            alert("New high score updated! 🔥");
+          } else {
+            alert("Score not higher than your best.");
+          }
+        } else {
+          await docRef.set({
+            id: playerId,
+            name: name,
+            score: playerScore,
+            timestamp: Date.now()
+          });
+
+          alert("Score added to leaderboard!");
+        }
+
+        switchTab("scoreboard");
+
+      } catch (err) {
+        alert("Error saving score: " + err.message);
+        console.error(err);
       }
-    } else {
-      await docRef.set({
-        id: playerId,
-        name: name,
-        score: playerScore,
-        timestamp: Date.now()
-      });
-
-      alert("Score added to leaderboard!");
     }
-
-    switchTab("scoreboard");
-
-  } catch (err) {
-    alert("Error saving score: " + err.message);
-    console.error(err);
-  }
-}
-
   </script>
 </body>
 </html>
