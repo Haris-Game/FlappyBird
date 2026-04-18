@@ -194,11 +194,6 @@
       <button class="pixel-btn" onclick="shareScore()">SHARE</button>
       <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
     </div>
-    <div>
-        <button onclick="showScoreboard('global')">Global</button>
-        <button onclick="showScoreboard('monthly')">Monthly</button>
-        <button onclick="showScoreboard('daily')">Daily</button>
-      </div>
   </div>
 
   <div id="countdown"></div>
@@ -249,6 +244,12 @@
     let isBlinking = false;
     let playerName = prompt("Enter your name:")?.trim() || "Player";
     let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
+    let playerId = localStorage.getItem("flappyPlayerId");
+
+if (!playerId) {
+  playerId = crypto.randomUUID();
+  localStorage.setItem("flappyPlayerId", playerId);
+}
 
     window.onload = () => {
       board = document.getElementById("board");
@@ -270,10 +271,7 @@
 
       document.getElementById("pauseBtn").onclick = togglePause;
       document.getElementById("gameTab").onclick = () => switchTab("game");
-      document.getElementById("scoreboardTab").onclick = () => {
-      switchTab("scoreboard");
-      showScoreboard("global");
-        };
+      document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
 
       document.addEventListener("keydown", moveBird);
       document.addEventListener("touchstart", moveBird);
@@ -454,61 +452,51 @@
       }
     }
 
-    async function showScoreboard(type = "global") {
-  const scoreboard = document.getElementById("scoreboard");
+    async function addToScoreboard() {
+  const name = prompt("Enter your name:", playerName)?.trim();
+  if (!name) return;
 
-  const snapshot = await db.collection("scores")
-    .orderBy("score", "desc")
-    .get();
+  const playerScore = Math.floor(score);
 
-  let now = Date.now();
-  let filtered = [];
+  try {
+    // Check if player already exists
+    const query = await db.collection("scores")
+      .where("name", "==", name)
+      .get();
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
+    if (!query.empty) {
+      // Player exists → update ONLY if new score is higher
+      const doc = query.docs[0];
+      const existingScore = doc.data().score;
 
-    // FILTER BY TIME
-    if (type === "daily") {
-      if (now - data.timestamp > 86400000) return; // 24h
+      if (playerScore > existingScore) {
+        await db.collection("scores").doc(doc.id).update({
+          score: playerScore,
+          timestamp: Date.now()
+        });
+        alert("New high score updated! 🔥");
+      } else {
+        alert("Score not higher than your best.");
+      }
+
+    } else {
+      // Player does NOT exist → create new entry
+      await db.collection("scores").add({
+  id: playerId,
+  name: name,
+  score: playerScore,
+  timestamp: Date.now()
+});
+
+      alert("Score added to leaderboard!");
     }
-    if (type === "monthly") {
-      if (now - data.timestamp > 2592000000) return; // 30 days
-    }
 
-    filtered.push(data);
-  });
+    switchTab("scoreboard");
 
-  // REMOVE DUPLICATES (KEEP BEST SCORE PER PLAYER)
-  let bestScores = {};
-
-  filtered.forEach(entry => {
-    if (!bestScores[entry.name] || entry.score > bestScores[entry.name]) {
-      bestScores[entry.name] = entry.score;
-    }
-  });
-
-  // CONVERT BACK TO ARRAY
-  let finalScores = Object.entries(bestScores).map(([name, score]) => ({ name, score }));
-
-  // SORT AGAIN
-  finalScores.sort((a, b) => b.score - a.score);
-
-  // TAKE TOP 10
-  finalScores = finalScores.slice(0, 10);
-
-  // UI
-  let title = "🌍 Global Top Scores";
-  if (type === "daily") title = "📆 Daily Top Scores";
-  if (type === "monthly") title = "📅 Monthly Top Scores";
-
-  let html = `<h2>${title}</h2><ol>`;
-  finalScores.forEach(s => {
-    html += `<li>${s.name}: ${s.score}</li>`;
-  });
-  html += "</ol>";
-
-  scoreboard.innerHTML = html;
-  scoreboard.style.display = "block";
+  } catch (err) {
+    console.error(err);
+    alert("Error saving score");
+  }
 }
 
     async function addToScoreboard() {
