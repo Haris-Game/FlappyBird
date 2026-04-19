@@ -6,7 +6,7 @@
   <title>Flappy Bird</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Squada+One&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="OpenEyes.png">
   <style>
     body {
@@ -110,10 +110,13 @@
     }
 
     .score-value {
-      color: #000000;
-      font-size: 28px;
-      line-height: 28px;
+      color: #ffffff; /* Changed to white */
+      font-family: 'Squada One', cursive; /* Changed to Squada One */
+      font-size: 32px;
+      line-height: 32px;
       margin-bottom: 4px;
+      -webkit-text-stroke: 1px black; /* Black outline */
+      text-shadow: 2px 2px 0 #000;
     }
 
     .buttons {
@@ -215,7 +218,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>
- // 1. FIREBASE CONFIGURATION & INITIALIZATION
+// 1. FIREBASE CONFIGURATION & INITIALIZATION
 const firebaseConfig = {
   apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
   authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
@@ -226,7 +229,6 @@ const firebaseConfig = {
   measurementId: "G-TJR0EHQLQN"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -263,10 +265,9 @@ let score = 0;
 let paused = false;
 let isBlinking = false;
 
-// Audio objects
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
-// 3. AUTHENTICATION LOGIC (Login & Register)
+// 3. AUTHENTICATION LOGIC
 async function handleAuth(type) {
   const uInput = document.getElementById("usernameInput");
   const pInput = document.getElementById("passwordInput");
@@ -278,7 +279,6 @@ async function handleAuth(type) {
     return;
   }
 
-  // Visual feedback for buttons
   const btn = event.target;
   const originalText = btn.textContent;
   btn.textContent = "WAIT...";
@@ -301,18 +301,15 @@ async function handleAuth(type) {
         alert("Registration successful! You can now Login.");
       }
     } else {
-      // Login Check
       if (!doc.exists) {
         alert("User not found. Please Register.");
       } else if (doc.data().password !== p) {
         alert("Wrong password!");
       } else {
-        // Success
         currentUser = u;
         highScore = doc.data().highScore || 0;
         document.getElementById("userDisplay").textContent = "PLAYER: " + u.toUpperCase();
         document.getElementById("authContainer").style.display = "none";
-        console.log("Logged in successfully as:", u);
       }
     }
   } catch (err) {
@@ -331,13 +328,11 @@ window.onload = function() {
   board.height = boardHeight;
   context = board.getContext("2d");
 
-  // Load Images
   birdImg.src = "OpenEyes.png";
   birdBlinkImg.src = "ClosedEyes.png";
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
 
-  // Load Audio
   bgm = document.getElementById("bgm");
   sfxWing = document.getElementById("sfx_wing");
   sfxHit = document.getElementById("sfx_hit");
@@ -345,7 +340,6 @@ window.onload = function() {
   sfxSwooshing = document.getElementById("sfx_swooshing");
   sfxDie = document.getElementById("sfx_die");
 
-  // Setup Controls
   document.getElementById("pauseBtn").onclick = togglePause;
   document.getElementById("gameTab").onclick = () => switchTab("game");
   document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
@@ -363,7 +357,6 @@ function update() {
 
   context.clearRect(0, 0, board.width, board.height);
 
-  // Blink logic
   isBlinking = (Date.now() % 4000) < 200;
 
   if (!waitingForStart) {
@@ -371,8 +364,19 @@ function update() {
     bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
     velocityX = -2;
   } else {
-    // Floating effect on start screen
     bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
+    
+    // START TEXT PROMPT
+    context.fillStyle = "white";
+    context.strokeStyle = "black";
+    context.lineWidth = 4;
+    context.font = "20px 'Press Start 2P'";
+    context.textAlign = "center";
+    context.strokeText("TAP / SPACE BAR", board.width/2, board.height/2 + 100);
+    context.fillText("TAP / SPACE BAR", board.width/2, board.height/2 + 100);
+    context.font = "16px 'Press Start 2P'";
+    context.strokeText("TO PLAY", board.width/2, board.height/2 + 140);
+    context.fillText("TO PLAY", board.width/2, board.height/2 + 140);
   }
 
   context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
@@ -381,7 +385,6 @@ function update() {
     handleGameOver();
   }
 
-  // Pipes
   for (let i = 0; i < pipeArray.length; i++) {
     let pipe = pipeArray[i];
     if (!waitingForStart) pipe.x += velocityX;
@@ -398,13 +401,19 @@ function update() {
     }
   }
 
-  // Clear off-screen pipes
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
-  // Score Draw
-  context.fillStyle = "white";
-  context.font = "45px 'Press Start 2P'";
-  context.fillText(Math.floor(score), board.width / 2 - 20, board.height / 4);
+  // AUTHENTIC SCORE DRAWING
+  if (!waitingForStart) {
+    context.fillStyle = "white";
+    context.strokeStyle = "black";
+    context.lineWidth = 6;
+    context.font = "80px 'Squada One'";
+    context.textAlign = "center";
+    let displayScore = Math.floor(score);
+    context.strokeText(displayScore, board.width / 2, board.height / 6);
+    context.fillText(displayScore, board.width / 2, board.height / 6);
+  }
 }
 
 function placePipes() {
@@ -413,21 +422,13 @@ function placePipes() {
   let opening = 160;
 
   pipeArray.push({
-    img: topPipeImg,
-    x: pipeX,
-    y: randomY,
-    width: pipeWidth,
-    height: pipeHeight,
-    passed: false
+    img: topPipeImg, x: pipeX, y: randomY,
+    width: pipeWidth, height: pipeHeight, passed: false
   });
 
   pipeArray.push({
-    img: bottomPipeImg,
-    x: pipeX,
-    y: randomY + pipeHeight + opening,
-    width: pipeWidth,
-    height: pipeHeight,
-    passed: false
+    img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening,
+    width: pipeWidth, height: pipeHeight, passed: false
   });
 }
 
@@ -475,7 +476,6 @@ function restartGame() {
   waitingForStart = true;
 }
 
-// 5. SCOREBOARD & UI LOGIC
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
@@ -507,17 +507,12 @@ async function showScoreboard() {
   sb.innerHTML = "LOADING...";
 
   try {
-    const snap = await db.collection("scores")
-      .orderBy("score", "desc")
-      .limit(10)
-      .get();
-
+    const snap = await db.collection("scores").orderBy("score", "desc").limit(10).get();
     let html = "<h3>🏆 TOP 10</h3>";
     let rank = 1;
     snap.forEach(doc => {
       html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`;
     });
-
     sb.innerHTML = html || "<h3>🏆 TOP 10</h3><p>No scores yet</p>";
   } catch (err) {
     sb.innerHTML = "Error loading scores.";
@@ -525,26 +520,22 @@ async function showScoreboard() {
 }
 
 function switchTab(tab) {
-  // Update button highlights
   document.getElementById("gameTab").classList.toggle("active", tab === "game");
   document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
-  
-  // Toggle visibility of main elements
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
 
-  // FIX: Force the Game Over modal to hide when moving to the Scoreboard
   if (tab === "scoreboard") {
     document.getElementById("gameOverModal").classList.remove("show");
     showScoreboard();
   } 
 
-  // OPTIONAL: Reset the game if they click the Game tab after being dead
   if (tab === "game" && gameOver) {
     restartGame();
   }
 }
+
 function togglePause() {
   if (gameOver || waitingForStart) return;
   paused = !paused;
