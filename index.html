@@ -259,7 +259,7 @@
       try {
         const snapshot = await db.collection("scores")
           .orderBy("score", "desc")
-          .limit(50)
+          .limit(10)
           .get();
 
         if (snapshot.empty) {
@@ -269,17 +269,11 @@
 
         let html = "<h3>🏆 Leaderboard</h3>";
         let rank = 1;
-        const seenNames = new Set();
 
         snapshot.forEach(doc => {
           const data = doc.data();
-          const upperName = data.name.toUpperCase();
-
-          if (!seenNames.has(upperName) && rank <= 10) {
-            html += `<p style="text-align:left; font-size:10px;">${rank}. ${data.name.substring(0,10)}: ${data.score}</p>`;
-            seenNames.add(upperName);
-            rank++;
-          }
+          html += `<p style="text-align:left; font-size:10px;">${rank}. ${data.name.substring(0,10)}: ${data.score}</p>`;
+          rank++;
         });
 
         scoreboard.innerHTML = html;
@@ -496,15 +490,15 @@
     }
 
     async function addToScoreboard() {
-      const nameInput = prompt("Enter your name:", playerName)?.trim();
-      if (!nameInput) return;
-      
+      const name = prompt("Enter your name:", playerName)?.trim();
+      if (!name) return;
+
       const playerScore = Math.floor(score);
-      // Create a unique entry key based on the device ID + the Name provided
-      const userKey = `${playerId}_${nameInput}`;
+      // We use the NAME as the ID now, so every unique name gets its own spot.
+      const nameId = name.toLowerCase(); 
 
       try {
-        const docRef = db.collection("scores").doc(userKey);
+        const docRef = db.collection("scores").doc(nameId);
         const docSnap = await docRef.get();
 
         if (docSnap.exists) {
@@ -513,24 +507,22 @@
           if (playerScore > existingScore) {
             await docRef.update({
               score: playerScore,
-              name: nameInput,
+              name: name, // keeps original casing
               timestamp: Date.now()
             });
-            alert("New high score updated! 🔥");
+            alert(`High score updated for ${name}! 🔥`);
           } else {
-            alert(`For "${nameInput}", your record is already ${existingScore}.`);
+            alert(`The name "${name}" already has a high score of ${existingScore}. Try a different name or beat the score!`);
           }
         } else {
           await docRef.set({
-            id: playerId,
-            name: nameInput,
+            name: name,
             score: playerScore,
             timestamp: Date.now()
           });
-          alert(`Score added for ${nameInput}!`);
+          alert(`Score added for ${name}!`);
         }
-        
-        playerName = nameInput; // Keep the name for next time
+
         switchTab("scoreboard");
 
       } catch (err) {
