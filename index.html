@@ -330,7 +330,7 @@ let gameOver = false;
 let score = 0;
 let paused = false;
 let isBlinking = false;
-let resumeTimer = 0; // NEW: Timer for resume
+let resumeTimer = 0; 
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
@@ -386,14 +386,8 @@ async function processAuth() {
         const userData = doc.data();
         userGender = userData.gender || 'male';
         highScore = userData.highScore || 0;
-        
         const displayEmoji = (userGender === 'female') ? "👩" : "👨";
-        
-        document.getElementById("userDisplay").innerHTML = `
-          <span class="user-emoji">${displayEmoji}</span>
-          <span>${u.toUpperCase()}</span>
-        `;
-        
+        document.getElementById("userDisplay").innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
         document.getElementById("authContainer").style.display = "none";
       }
     }
@@ -429,17 +423,14 @@ function update() {
   context.clearRect(0, 0, board.width, board.height);
   isBlinking = (Date.now() % 4000) < 200;
 
-  // NEW: Handle Resume Countdown Rendering
   if (resumeTimer > 0) {
       context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
-      for (let pipe of pipeArray) {
-          context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
-      }
+      for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
       context.fillStyle = "gold";
       context.font = "40px 'Press Start 2P'";
       context.textAlign = "center";
       context.fillText(resumeTimer, board.width / 2, board.height / 2);
-      return; // Freeze movement
+      return; 
   }
 
   if (!waitingForStart) {
@@ -448,11 +439,7 @@ function update() {
     velocityX = -2;
   } else {
     bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
-    context.fillStyle = "white";
-    context.strokeStyle = "black";
-    context.lineWidth = 4;
-    context.font = "16px 'Press Start 2P'";
-    context.textAlign = "center";
+    context.fillStyle = "white"; context.strokeStyle = "black"; context.lineWidth = 4; context.font = "16px 'Press Start 2P'"; context.textAlign = "center";
     context.strokeText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
     context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
   }
@@ -469,11 +456,7 @@ function update() {
   }
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
   if (!waitingForStart) {
-    context.fillStyle = "white";
-    context.strokeStyle = "black";
-    context.lineWidth = 4;
-    context.font = "40px 'Press Start 2P'";
-    context.textAlign = "center";
+    context.fillStyle = "white"; context.strokeStyle = "black"; context.lineWidth = 4; context.font = "40px 'Press Start 2P'"; context.textAlign = "center";
     context.strokeText(Math.floor(score), board.width / 2, board.height / 5);
     context.fillText(Math.floor(score), board.width / 2, board.height / 5);
   }
@@ -518,41 +501,23 @@ async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
   try {
-    // Check if the user already has a higher score in the leaderboard before adding/updating
-    const scoreQuery = await db.collection("scores")
-                               .where("name", "==", currentUser)
-                               .orderBy("score", "desc")
-                               .limit(1)
-                               .get();
-    
-    let existingHigh = 0;
-    let existingDocId = null;
+    // SYSTEM FIX: Use .add() to create a unique entry with its own ID every time. 
+    // This ensures no old scores are ever overwritten.
+    await db.collection("scores").add({
+      name: currentUser,
+      score: currentScoreValue,
+      gender: userGender,
+      timestamp: Date.now()
+    });
 
-    if (!scoreQuery.empty) {
-        existingHigh = scoreQuery.docs[0].data().score;
-        existingDocId = scoreQuery.docs[0].id;
+    // Update the local highscore if this run was better
+    const userRef = db.collection("users").doc(currentUser);
+    const doc = await userRef.get();
+    if (doc.exists && currentScoreValue > (doc.data().highScore || 0)) {
+        await userRef.update({ highScore: currentScoreValue });
     }
 
-    // Only update if the new score is better than what's on the board
-    if (currentScoreValue > existingHigh) {
-        if (existingDocId) {
-            await db.collection("scores").doc(existingDocId).update({
-                score: currentScoreValue,
-                timestamp: Date.now()
-            });
-        } else {
-            await db.collection("scores").add({
-              name: currentUser,
-              score: currentScoreValue,
-              gender: userGender,
-              timestamp: Date.now()
-            });
-        }
-        alert("Leaderboard updated! 🚀");
-    } else {
-        alert("Your existing high score is better!");
-    }
-
+    alert("Score added to leaderboard! 🚀");
     switchTab("scoreboard");
   } catch (err) { 
     console.error(err); 
@@ -577,15 +542,12 @@ async function showScoreboard() {
 
   try {
     let query = db.collection("scores").orderBy("score", "desc");
-    if (currentFilter !== 'global') {
-        query = query.where("timestamp", ">=", startTime);
-    }
+    if (currentFilter !== 'global') { query = query.where("timestamp", ">=", startTime); }
     const snap = await query.limit(10).get();
     let html = "";
     let rank = 1;
-    if (snap.empty) {
-        html = "<p style='text-align:center'>NO SCORES YET</p>";
-    } else {
+    if (snap.empty) { html = "<p style='text-align:center'>NO SCORES YET</p>"; } 
+    else {
         snap.forEach(doc => {
             const d = doc.data();
             const emoji = (d.gender === 'female') ? "👩" : "👨";
@@ -605,23 +567,17 @@ function switchTab(tab) {
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
-  if (tab === "scoreboard") { 
-      document.getElementById("gameOverModal").classList.remove("show"); 
-      showScoreboard(); 
-  } 
+  if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
   if (tab === "game" && gameOver) restartGame();
 }
 
 function togglePause() {
   if (gameOver || waitingForStart || resumeTimer > 0) return;
-  
   if (!paused) {
-      // Pausing
       paused = true;
       document.getElementById("pauseBtn").textContent = "PLAY";
       bgm.pause();
   } else {
-      // Unpausing with countdown
       document.getElementById("pauseBtn").textContent = "PAUSE";
       resumeTimer = 3;
       let countdown = setInterval(() => {
