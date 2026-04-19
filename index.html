@@ -215,195 +215,342 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
-      authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
-      projectId: "flappybirdleaderboard-186ad",
-      storageBucket: "flappybirdleaderboard-186ad.firebasestorage.app",
-      messagingSenderId: "623790359391",
-      appId: "1:623790359391:web:f62feff43af41642a72cea",
-      measurementId: "G-TJR0EHQLQN"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
+ // 1. FIREBASE CONFIGURATION & INITIALIZATION
+const firebaseConfig = {
+  apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
+  authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
+  projectId: "flappybirdleaderboard-186ad",
+  storageBucket: "flappybirdleaderboard-186ad.firebasestorage.app",
+  messagingSenderId: "623790359391",
+  appId: "1:623790359391:web:f62feff43af41642a72cea",
+  measurementId: "G-TJR0EHQLQN"
+};
 
-  <script>
-    // Game Variables
-    let waitingForStart = true;
-    let board, context;
-    const boardWidth = 360, boardHeight = 640;
-    const birdWidth = 34, birdHeight = 24;
-    const birdX = boardWidth / 8, birdY = boardHeight / 2;
-    let birdImg = new Image(), birdBlinkImg = new Image();
-    let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
-    let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth;
-    let topPipeImg = new Image(), bottomPipeImg = new Image();
-    let velocityX = 0, velocityY = 0, gravity = 0.4;
-    let gameOver = false, score = 0, paused = false;
-    let highScore = 0, currentUser = null, isBlinking = false;
-    let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    // AUTH LOGIC
-    async function handleAuth(type) {
-      const u = document.getElementById("usernameInput").value.trim().toLowerCase();
-      const p = document.getElementById("passwordInput").value.trim();
-      if (!u || !p) return alert("Enter Username and Password!");
+// 2. GLOBAL VARIABLES
+let currentUser = null;
+let highScore = 0;
+let waitingForStart = true;
+let board, context;
 
-      const userRef = db.collection("users").doc(u);
-      const doc = await userRef.get();
+const boardWidth = 360;
+const boardHeight = 640;
+const birdWidth = 34;
+const birdHeight = 24;
+const birdX = boardWidth / 8;
+const birdY = boardHeight / 2;
 
-      if (type === 'register') {
-        if (doc.exists) return alert("Username already taken!");
-        await userRef.set({ username: u, password: p, highScore: 0 });
-        alert("Account Created! You can now Login.");
+let birdImg = new Image();
+let birdBlinkImg = new Image();
+let topPipeImg = new Image();
+let bottomPipeImg = new Image();
+
+let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
+let pipeArray = [];
+let pipeWidth = 64;
+let pipeHeight = 512;
+let pipeX = boardWidth;
+
+let velocityX = 0; 
+let velocityY = 0; 
+let gravity = 0.4;
+
+let gameOver = false;
+let score = 0;
+let paused = false;
+let isBlinking = false;
+
+// Audio objects
+let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
+
+// 3. AUTHENTICATION LOGIC (Login & Register)
+async function handleAuth(type) {
+  const uInput = document.getElementById("usernameInput");
+  const pInput = document.getElementById("passwordInput");
+  const u = uInput.value.trim().toLowerCase();
+  const p = pInput.value.trim();
+
+  if (!u || !p) {
+    alert("Please enter both username and password!");
+    return;
+  }
+
+  // Visual feedback for buttons
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = "WAIT...";
+  btn.disabled = true;
+
+  try {
+    const userRef = db.collection("users").doc(u);
+    const doc = await userRef.get();
+
+    if (type === 'register') {
+      if (doc.exists) {
+        alert("Username already taken!");
       } else {
-        if (!doc.exists || doc.data().password !== p) return alert("Invalid Login Details!");
+        await userRef.set({
+          username: u,
+          password: p,
+          highScore: 0,
+          timestamp: Date.now()
+        });
+        alert("Registration successful! You can now Login.");
+      }
+    } else {
+      // Login Check
+      if (!doc.exists) {
+        alert("User not found. Please Register.");
+      } else if (doc.data().password !== p) {
+        alert("Wrong password!");
+      } else {
+        // Success
         currentUser = u;
         highScore = doc.data().highScore || 0;
-        document.getElementById("userDisplay").textContent = "HI " + u.toUpperCase();
+        document.getElementById("userDisplay").textContent = "PLAYER: " + u.toUpperCase();
         document.getElementById("authContainer").style.display = "none";
+        console.log("Logged in successfully as:", u);
       }
     }
+  } catch (err) {
+    console.error("Auth error:", err);
+    alert("Connection Error: " + err.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
 
-    window.onload = () => {
-      board = document.getElementById("board");
-      board.width = boardWidth; board.height = boardHeight;
-      context = board.getContext("2d");
-      birdImg.src = "OpenEyes.png"; birdBlinkImg.src = "ClosedEyes.png";
-      topPipeImg.src = "toppipe.png"; bottomPipeImg.src = "bottompipe.png";
-      bgm = document.getElementById("bgm");
-      sfxWing = document.getElementById("sfx_wing"); sfxHit = document.getElementById("sfx_hit");
-      sfxPoint = document.getElementById("sfx_point"); sfxSwooshing = document.getElementById("sfx_swooshing");
-      sfxDie = document.getElementById("sfx_die");
-      
-      document.getElementById("pauseBtn").onclick = togglePause;
-      document.getElementById("gameTab").onclick = () => switchTab("game");
-      document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
-      document.addEventListener("keydown", moveBird);
-      document.addEventListener("touchstart", moveBird);
+// 4. GAME ENGINE
+window.onload = function() {
+  board = document.getElementById("board");
+  board.width = boardWidth;
+  board.height = boardHeight;
+  context = board.getContext("2d");
 
-      requestAnimationFrame(update);
-      setInterval(placePipes, 1500);
-    };
+  // Load Images
+  birdImg.src = "OpenEyes.png";
+  birdBlinkImg.src = "ClosedEyes.png";
+  topPipeImg.src = "toppipe.png";
+  bottomPipeImg.src = "bottompipe.png";
 
-    function update() {
-      requestAnimationFrame(update);
-      if (gameOver || paused || !currentUser) return;
-      context.clearRect(0, 0, board.width, board.height);
-      
-      isBlinking = (Date.now() % 4000) < 200;
-      if (!waitingForStart) {
-        velocityY += gravity;
-        bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
-        velocityX = -2;
-      } else {
-        bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
-      }
+  // Load Audio
+  bgm = document.getElementById("bgm");
+  sfxWing = document.getElementById("sfx_wing");
+  sfxHit = document.getElementById("sfx_hit");
+  sfxPoint = document.getElementById("sfx_point");
+  sfxSwooshing = document.getElementById("sfx_swooshing");
+  sfxDie = document.getElementById("sfx_die");
 
-      context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
-      if (!waitingForStart && bird.y + bird.height >= board.height) return handleGameOver();
+  // Setup Controls
+  document.getElementById("pauseBtn").onclick = togglePause;
+  document.getElementById("gameTab").onclick = () => switchTab("game");
+  document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
 
-      for (let pipe of pipeArray) {
-        if (!waitingForStart) pipe.x += velocityX;
-        context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
-        if (!pipe.passed && bird.x > pipe.x + pipe.width) {
-          score += 0.5; pipe.passed = true; sfxPoint.play();
-        }
-        if (detectCollision(bird, pipe)) return handleGameOver();
-      }
-      pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
-      context.fillStyle = "white"; context.font = "55px 'Press Start 2P'";
-      context.fillText(Math.floor(score), board.width/2 - 25, board.height/4);
+  document.addEventListener("keydown", moveBird);
+  document.addEventListener("touchstart", moveBird);
+
+  requestAnimationFrame(update);
+  setInterval(placePipes, 1500);
+};
+
+function update() {
+  requestAnimationFrame(update);
+  if (gameOver || paused || !currentUser) return;
+
+  context.clearRect(0, 0, board.width, board.height);
+
+  // Blink logic
+  isBlinking = (Date.now() % 4000) < 200;
+
+  if (!waitingForStart) {
+    velocityY += gravity;
+    bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
+    velocityX = -2;
+  } else {
+    // Floating effect on start screen
+    bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
+  }
+
+  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  if (!waitingForStart && bird.y + bird.height >= board.height) {
+    handleGameOver();
+  }
+
+  // Pipes
+  for (let i = 0; i < pipeArray.length; i++) {
+    let pipe = pipeArray[i];
+    if (!waitingForStart) pipe.x += velocityX;
+    context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+
+    if (!pipe.passed && bird.x > pipe.x + pipe.width) {
+      score += 0.5;
+      pipe.passed = true;
+      sfxPoint.play();
     }
 
-    async function addToScoreboard() {
-      if (!currentUser) return;
-      const finalScore = Math.floor(score);
-      const userRef = db.collection("users").doc(currentUser);
-      const scoreRef = db.collection("scores").doc(currentUser);
-
-      try {
-        if (finalScore > highScore) {
-          await userRef.update({ highScore: finalScore });
-          await scoreRef.set({ name: currentUser, score: finalScore, timestamp: Date.now() });
-          highScore = finalScore;
-          alert("New Personal Record! 🔥");
-        } else {
-          alert(`Current Personal Best is ${highScore}.`);
-        }
-        switchTab("scoreboard");
-      } catch (err) { console.error(err); }
+    if (detectCollision(bird, pipe)) {
+      handleGameOver();
     }
+  }
 
-    async function showScoreboard() {
-      const sb = document.getElementById("scoreboard");
-      sb.style.display = "block"; sb.innerHTML = "Loading...";
-      try {
-        const snap = await db.collection("scores").orderBy("score", "desc").limit(10).get();
-        let html = "<h3>🏆 TOP 10</h3>";
-        let rank = 1;
-        snap.forEach(doc => {
-          html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name}: ${doc.data().score}</p>`;
-        });
-        sb.innerHTML = html || "<h3>🏆 TOP 10</h3><p>No scores yet</p>";
-      } catch (err) { sb.innerHTML = "Error loading."; }
-    }
+  // Clear off-screen pipes
+  pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
-    function placePipes() {
-      if (gameOver || paused || waitingForStart) return;
-      let randomY = -pipeHeight/4 - Math.random() * (pipeHeight/2);
-      pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
-      pipeArray.push({ img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + 160, width: pipeWidth, height: pipeHeight, passed: false });
-    }
+  // Score Draw
+  context.fillStyle = "white";
+  context.font = "45px 'Press Start 2P'";
+  context.fillText(Math.floor(score), board.width / 2 - 20, board.height / 4);
+}
 
-    function moveBird(e) {
-      if (gameOver || paused || !currentUser) return;
-      if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
-      if (waitingForStart) {
-        waitingForStart = false; bgm.play(); sfxSwooshing.play();
-      }
-      velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
-    }
+function placePipes() {
+  if (gameOver || paused || waitingForStart) return;
+  let randomY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
+  let opening = 160;
 
-    function detectCollision(a, b) {
-      return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-    }
+  pipeArray.push({
+    img: topPipeImg,
+    x: pipeX,
+    y: randomY,
+    width: pipeWidth,
+    height: pipeHeight,
+    passed: false
+  });
 
-    function handleGameOver() {
-      if (gameOver) return;
-      gameOver = true; sfxHit.play(); sfxDie.play(); bgm.pause();
-      document.getElementById("finalScore").textContent = Math.floor(score);
-      document.getElementById("highScore").textContent = Math.floor(highScore);
-      document.getElementById("gameOverModal").classList.add("show");
-    }
+  pipeArray.push({
+    img: bottomPipeImg,
+    x: pipeX,
+    y: randomY + pipeHeight + opening,
+    width: pipeWidth,
+    height: pipeHeight,
+    passed: false
+  });
+}
 
-    function restartGame() {
-      document.getElementById("gameOverModal").classList.remove("show");
-      bird.y = birdY; velocityY = 0; pipeArray = []; score = 0;
-      gameOver = false; waitingForStart = true;
-    }
+function moveBird(e) {
+  if (gameOver || paused || !currentUser) return;
+  if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
 
-    function switchTab(tab) {
-      document.getElementById("gameTab").classList.toggle("active", tab === "game");
-      document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
-      document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
-      document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
-      document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
-      if (tab === "scoreboard") showScoreboard();
-    }
+  if (waitingForStart) {
+    waitingForStart = false;
+    bgm.play();
+    sfxSwooshing.play();
+  }
 
-    function togglePause() {
-      if (gameOver || waitingForStart) return;
-      paused = !paused;
-      document.getElementById("pauseBtn").textContent = paused ? "Play" : "Pause";
-    }
+  velocityY = -6;
+  sfxWing.currentTime = 0;
+  sfxWing.play();
+}
 
-    function shareScore() {
-      const text = `${currentUser} scored ${Math.floor(score)} in Flappy Bird!`;
-      if (navigator.share) navigator.share({ title: "Score", text });
-      else alert(text);
+function detectCollision(a, b) {
+  return a.x < b.x + b.width &&
+         a.x + a.width > b.x &&
+         a.y < b.y + b.height &&
+         a.y + a.height > b.y;
+}
+
+function handleGameOver() {
+  if (gameOver) return;
+  gameOver = true;
+  sfxHit.play();
+  sfxDie.play();
+  bgm.pause();
+
+  document.getElementById("finalScore").textContent = Math.floor(score);
+  document.getElementById("highScore").textContent = Math.floor(highScore);
+  document.getElementById("gameOverModal").classList.add("show");
+}
+
+function restartGame() {
+  document.getElementById("gameOverModal").classList.remove("show");
+  bird.y = birdY;
+  velocityY = 0;
+  pipeArray = [];
+  score = 0;
+  gameOver = false;
+  waitingForStart = true;
+}
+
+// 5. SCOREBOARD & UI LOGIC
+async function addToScoreboard() {
+  if (!currentUser) return;
+  const currentScoreValue = Math.floor(score);
+  const userRef = db.collection("users").doc(currentUser);
+  const scoreRef = db.collection("scores").doc(currentUser);
+
+  try {
+    if (currentScoreValue > highScore) {
+      await userRef.update({ highScore: currentScoreValue });
+      await scoreRef.set({
+        name: currentUser,
+        score: currentScoreValue,
+        timestamp: Date.now()
+      });
+      highScore = currentScoreValue;
+      alert("New Personal Best! 🔥");
+    } else {
+      alert("Best Score: " + highScore);
     }
+    switchTab("scoreboard");
+  } catch (err) {
+    console.error("Error saving score:", err);
+  }
+}
+
+async function showScoreboard() {
+  const sb = document.getElementById("scoreboard");
+  sb.style.display = "block";
+  sb.innerHTML = "LOADING...";
+
+  try {
+    const snap = await db.collection("scores")
+      .orderBy("score", "desc")
+      .limit(10)
+      .get();
+
+    let html = "<h3>🏆 TOP 10</h3>";
+    let rank = 1;
+    snap.forEach(doc => {
+      html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`;
+    });
+
+    sb.innerHTML = html || "<h3>🏆 TOP 10</h3><p>No scores yet</p>";
+  } catch (err) {
+    sb.innerHTML = "Error loading scores.";
+  }
+}
+
+function switchTab(tab) {
+  document.getElementById("gameTab").classList.toggle("active", tab === "game");
+  document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
+  
+  document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
+  document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
+  document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
+
+  if (tab === "scoreboard") {
+    showScoreboard();
+  }
+}
+
+function togglePause() {
+  if (gameOver || waitingForStart) return;
+  paused = !paused;
+  document.getElementById("pauseBtn").textContent = paused ? "PLAY" : "PAUSE";
+}
+
+function shareScore() {
+  const text = `${currentUser.toUpperCase()} scored ${Math.floor(score)} in Flappy Bird! Beat me!`;
+  if (navigator.share) {
+    navigator.share({ title: "My Flappy Score", text });
+  } else {
+    alert(text);
+  }
+}
   </script>
 </body>
 </html>
