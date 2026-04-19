@@ -94,20 +94,26 @@
     .tabs button.active { background: gold; }
 
     #userDisplay {
+      position: fixed;
+      bottom: 10px;
+      left: 20px;
       color: gold; 
       font-size: 8px; 
-      margin-left: 15px;
       display: inline-flex;
       align-items: center;
-      vertical-align: middle;
-      gap: 5px;
+      gap: 8px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 12px;
+      border-radius: 10px;
+      border: 2px solid cyan;
+      visibility: hidden;
     }
 
     .user-emoji {
       font-size: 14px; 
       line-height: 0;
       display: inline-block;
-      transform: translateY(2px); 
     }
 
     #board {
@@ -252,8 +258,9 @@
     <button id="gameTab" class="active">Game</button>
     <button id="scoreboardTab">Scoreboard</button>
     <button id="skinsTab">Skins</button>
-    <div id="userDisplay"></div>
   </div>
+
+  <div id="userDisplay"></div>
 
   <canvas id="board"></canvas>
 
@@ -438,7 +445,9 @@ async function processAuth() {
         updateBirdSkins();
         
         const displayEmoji = (userGender === 'female') ? "👩" : "👨";
-        document.getElementById("userDisplay").innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
+        const displayElem = document.getElementById("userDisplay");
+        displayElem.innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
+        displayElem.style.visibility = "visible";
         document.getElementById("authContainer").style.display = "none";
       }
     }
@@ -481,10 +490,9 @@ function update() {
   
   isBlinking = (Date.now() % 4000) < 200;
   
-  // Update skins tab preview blinking
   document.getElementById("skin0").src = isBlinking ? "ClosedEyes.png" : "OpenEyes.png";
   document.getElementById("skin200").src = isBlinking ? "BlueCloseEyes.png" : "BlueOpenEyes.png";
-  document.getElementById("skin400").src = isBlinking ? "GreenCloseEyes.png" : "RedOpenEyes.png";
+  document.getElementById("skin400").src = isBlinking ? "RedCloseEyes.png" : "RedOpenEyes.png";
   document.getElementById("skin800").src = isBlinking ? "LegendaryCloseEyes.png" : "LegendaryOpenEyes.png";
 
   let currentBirdFrame = isBlinking ? birdBlinkImg : birdImg;
@@ -492,12 +500,7 @@ function update() {
   if (resumeTimer > 0) {
       context.drawImage(currentBirdFrame, bird.x, bird.y, bird.width, bird.height);
       for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
-      
-      context.fillStyle = "gold";
-      context.strokeStyle = "black";
-      context.lineWidth = 6;
-      context.font = "60px 'Press Start 2P'";
-      context.textAlign = "center";
+      context.fillStyle = "gold"; context.strokeStyle = "black"; context.lineWidth = 6; context.font = "60px 'Press Start 2P'"; context.textAlign = "center";
       context.strokeText(resumeTimer, board.width / 2, board.height / 2);
       context.fillText(resumeTimer, board.width / 2, board.height / 2);
       return; 
@@ -544,7 +547,6 @@ function update() {
 
 function placePipes() {
   if (gameOver || paused || waitingForStart || resumeTimer > 0) return;
-  
   let randomY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
   let opening = 160;
   pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
@@ -567,12 +569,10 @@ function handleGameOver() {
   gameOver = true;
   sfxHit.play(); sfxDie.play(); bgm.pause();
   let currentSessionScore = Math.floor(score);
-  
   if (currentSessionScore > highScore) { 
       highScore = currentSessionScore; 
       updateBirdSkins();
   }
-  
   document.getElementById("finalScore").textContent = currentSessionScore;
   document.getElementById("highScore").textContent = highScore;
   document.getElementById("gameOverModal").classList.add("show");
@@ -583,6 +583,7 @@ function restartGame() {
   bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true; resumeTimer = 0;
 }
 
+/* --- FIXED LEADERBOARD LOGIC: 1 ENTRY PER PERSON --- */
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
@@ -590,18 +591,20 @@ async function addToScoreboard() {
     const scoreRef = db.collection("scores").doc(currentUser);
     const docSnap = await scoreRef.get();
 
+    // Only update if no previous entry exists OR the new score is higher
     if (!docSnap.exists || currentScoreValue > (docSnap.data().score || 0)) {
       await scoreRef.set({
         name: currentUser,
         score: currentScoreValue,
         gender: userGender,
         timestamp: Date.now()
-      });
-      alert("New personal best saved! 🚀");
+      }, { merge: true });
+      alert("Scoreboard updated! 🚀");
     } else {
-      alert("Score saved!");
+      alert("Keep practicing! Your best score is already on the board.");
     }
 
+    // Always keep the User Profile high score in sync
     const userRef = db.collection("users").doc(currentUser);
     const userDoc = await userRef.get();
     if (userDoc.exists && currentScoreValue > (userDoc.data().highScore || 0)) {
@@ -655,12 +658,10 @@ function switchTab(tab) {
   document.getElementById("gameTab").classList.toggle("active", tab === "game");
   document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
   document.getElementById("skinsTab").classList.toggle("active", tab === "skins");
-
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
   document.getElementById("skinsTabContent").style.display = (tab === "skins") ? "block" : "none";
-
   if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
   if (tab === "skins") { document.getElementById("gameOverModal").classList.remove("show"); }
   if (tab === "game" && gameOver) restartGame();
