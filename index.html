@@ -46,7 +46,7 @@
       text-shadow: 2px 2px black;
     }
 
-    .auth-card input {
+    .auth-card input, .auth-card select {
       padding: 12px;
       margin-bottom: 15px;
       font-family: 'Press Start 2P';
@@ -105,10 +105,10 @@
     }
 
     .user-emoji {
-      font-size: 14px; /* Slightly larger to match visual weight of pixel font */
+      font-size: 14px; 
       line-height: 0;
       display: inline-block;
-      transform: translateY(2px); /* Nudges emoji down to the text baseline */
+      transform: translateY(2px); 
     }
     /* --------------------------- */
 
@@ -228,6 +228,10 @@
       <h2 id="authTitle">FLAPPY LOGIN</h2>
       <input type="text" id="usernameInput" placeholder="USERNAME">
       <input type="password" id="passwordInput" placeholder="PASSWORD">
+      <select id="genderInput" style="display: none;">
+        <option value="male">MALE 👨</option>
+        <option value="female">FEMALE 👩</option>
+      </select>
       <button id="authPrimaryBtn" class="pixel-btn" onclick="processAuth()">LOGIN</button>
       <div id="authToggle" class="toggle-link" onclick="toggleAuthMode()">
         Don't have an account? Register
@@ -334,30 +338,44 @@ function toggleAuthMode() {
   const title = document.getElementById("authTitle");
   const btn = document.getElementById("authPrimaryBtn");
   const toggle = document.getElementById("authToggle");
+  const genderInput = document.getElementById("genderInput");
+  
   if (authMode === 'login') {
     authMode = 'register';
     title.textContent = "FLAPPY REGISTER";
     btn.textContent = "REGISTER";
     toggle.textContent = "Already have an account? Login";
+    genderInput.style.display = "block";
   } else {
     authMode = 'login';
     title.textContent = "FLAPPY LOGIN";
     btn.textContent = "LOGIN";
     toggle.textContent = "Don't have an account? Register";
+    genderInput.style.display = "none";
   }
 }
 
 async function processAuth() {
   const u = document.getElementById("usernameInput").value.trim().toLowerCase();
   const p = document.getElementById("passwordInput").value.trim();
+  const g = document.getElementById("genderInput").value;
+  
   if (!u || !p) { alert("Fill all fields!"); return; }
+  
   try {
     const userRef = db.collection("users").doc(u);
     const doc = await userRef.get();
+    
     if (authMode === 'register') {
       if (doc.exists) { alert("Username exists!"); } 
       else {
-        await userRef.set({ username: u, password: p, highScore: 0, timestamp: Date.now() });
+        await userRef.set({ 
+            username: u, 
+            password: p, 
+            gender: g, 
+            highScore: 0, 
+            timestamp: Date.now() 
+        });
         alert("Success! Now Login.");
         toggleAuthMode();
       }
@@ -365,11 +383,14 @@ async function processAuth() {
       if (!doc.exists || doc.data().password !== p) { alert("Wrong credentials!"); } 
       else {
         currentUser = u;
-        highScore = doc.data().highScore || 0;
+        const userData = doc.data();
+        highScore = userData.highScore || 0;
         
-        // --- UPDATED EMOJI HTML ---
+        // Determine correct emoji based on saved gender
+        const displayEmoji = (userData.gender === 'female') ? "👩" : "👨";
+        
         document.getElementById("userDisplay").innerHTML = `
-          <span class="user-emoji">👨</span>
+          <span class="user-emoji">${displayEmoji}</span>
           <span>${u.toUpperCase()}</span>
         `;
         
