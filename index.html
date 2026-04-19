@@ -455,27 +455,42 @@ function restartGame() {
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
+  
   try {
-      const userRef = db.collection("users").doc(currentUser);
-      const doc = await userRef.get();
-      const dbHigh = doc.data().highScore || 0;
+    const userRef = db.collection("users").doc(currentUser);
+    const scoreRef = db.collection("scores").doc(currentUser); // Use username as the ID
+    
+    const doc = await userRef.get();
+    const dbHigh = doc.data().highScore || 0;
+
+    // Only update if the current score is better than their all-time high
+    if (currentScoreValue > dbHigh) {
+      // Update the user's main profile
+      await userRef.update({ highScore: currentScoreValue });
       
-      // Update User Highscore if needed
-      if (currentScoreValue > dbHigh) {
-          await userRef.update({ highScore: currentScoreValue });
-          highScore = currentScoreValue;
-      }
-      
-      // Save this score instance for daily/weekly filtering
-      await db.collection("scores").add({
-          name: currentUser,
-          score: currentScoreValue,
-          timestamp: Date.now()
+      // Update the leaderboard entry (Overwrites the old one)
+      await scoreRef.set({
+        name: currentUser,
+        score: currentScoreValue,
+        timestamp: Date.now() // Updates the time so they appear in Daily/Weekly
       });
       
-      alert("Score Added! 🚀");
-      switchTab("scoreboard");
-  } catch (err) { console.error(err); }
+      highScore = currentScoreValue;
+      alert("New Personal Best! 🚀");
+    } else {
+      alert("Score saved! (But your best is still " + dbHigh + ")");
+      
+      // OPTIONAL: Update timestamp anyway so they stay on the Daily/Weekly board
+      await scoreRef.update({
+        timestamp: Date.now()
+      });
+    }
+    
+    switchTab("scoreboard");
+  } catch (err) { 
+    console.error(err); 
+    alert("Error saving score.");
+  }
 }
 
 function changeFilter(type, btn) {
