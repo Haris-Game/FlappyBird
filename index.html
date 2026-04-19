@@ -525,18 +525,26 @@ async function showScoreboard() {
 }
 
 function switchTab(tab) {
+  // Update button highlights
   document.getElementById("gameTab").classList.toggle("active", tab === "game");
   document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
   
+  // Toggle visibility of main elements
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
 
+  // FIX: Force the Game Over modal to hide when moving to the Scoreboard
   if (tab === "scoreboard") {
+    document.getElementById("gameOverModal").classList.remove("show");
     showScoreboard();
+  } 
+
+  // OPTIONAL: Reset the game if they click the Game tab after being dead
+  if (tab === "game" && gameOver) {
+    restartGame();
   }
 }
-
 function togglePause() {
   if (gameOver || waitingForStart) return;
   paused = !paused;
