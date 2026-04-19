@@ -330,6 +330,7 @@ let gameOver = false;
 let score = 0;
 let paused = false;
 let isBlinking = false;
+let resumeTimer = 0; // NEW: Timer for resume
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
@@ -427,6 +428,20 @@ function update() {
   if (gameOver || paused || !currentUser) return;
   context.clearRect(0, 0, board.width, board.height);
   isBlinking = (Date.now() % 4000) < 200;
+
+  // NEW: Handle Resume Countdown Rendering
+  if (resumeTimer > 0) {
+      context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+      for (let pipe of pipeArray) {
+          context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+      }
+      context.fillStyle = "gold";
+      context.font = "40px 'Press Start 2P'";
+      context.textAlign = "center";
+      context.fillText(resumeTimer, board.width / 2, board.height / 2);
+      return; // Freeze movement
+  }
+
   if (!waitingForStart) {
     velocityY += gravity;
     bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
@@ -465,7 +480,7 @@ function update() {
 }
 
 function placePipes() {
-  if (gameOver || paused || waitingForStart) return;
+  if (gameOver || paused || waitingForStart || resumeTimer > 0) return;
   let randomY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
   let opening = 160;
   pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
@@ -473,7 +488,7 @@ function placePipes() {
 }
 
 function moveBird(e) {
-  if (gameOver || paused || !currentUser) return;
+  if (gameOver || paused || !currentUser || resumeTimer > 0) return;
   if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
   if (waitingForStart) { waitingForStart = false; bgm.play(); sfxSwooshing.play(); }
   velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
@@ -496,32 +511,48 @@ function handleGameOver() {
 
 function restartGame() {
   document.getElementById("gameOverModal").classList.remove("show");
-  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true;
+  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true; resumeTimer = 0;
 }
 
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
   try {
-    const userRef = db.collection("users").doc(currentUser);
-    const doc = await userRef.get();
-    const dbHigh = doc.data().highScore || 0;
+    // Check if the user already has a higher score in the leaderboard before adding/updating
+    const scoreQuery = await db.collection("scores")
+                               .where("name", "==", currentUser)
+                               .orderBy("score", "desc")
+                               .limit(1)
+                               .get();
+    
+    let existingHigh = 0;
+    let existingDocId = null;
 
-    // Update the high score on the user profile if needed
-    if (currentScoreValue > dbHigh) {
-      await userRef.update({ highScore: currentScoreValue });
-      highScore = currentScoreValue;
+    if (!scoreQuery.empty) {
+        existingHigh = scoreQuery.docs[0].data().score;
+        existingDocId = scoreQuery.docs[0].id;
     }
 
-    // CREATE A UNIQUE SCORE ENTRY (This prevents overwriting)
-    await db.collection("scores").add({
-      name: currentUser,
-      score: currentScoreValue,
-      gender: userGender,
-      timestamp: Date.now()
-    });
+    // Only update if the new score is better than what's on the board
+    if (currentScoreValue > existingHigh) {
+        if (existingDocId) {
+            await db.collection("scores").doc(existingDocId).update({
+                score: currentScoreValue,
+                timestamp: Date.now()
+            });
+        } else {
+            await db.collection("scores").add({
+              name: currentUser,
+              score: currentScoreValue,
+              gender: userGender,
+              timestamp: Date.now()
+            });
+        }
+        alert("Leaderboard updated! 🚀");
+    } else {
+        alert("Your existing high score is better!");
+    }
 
-    alert("Score saved to leaderboard! 🚀");
     switchTab("scoreboard");
   } catch (err) { 
     console.error(err); 
@@ -582,9 +613,26 @@ function switchTab(tab) {
 }
 
 function togglePause() {
-  if (gameOver || waitingForStart) return;
-  paused = !paused;
-  document.getElementById("pauseBtn").textContent = paused ? "PLAY" : "PAUSE";
+  if (gameOver || waitingForStart || resumeTimer > 0) return;
+  
+  if (!paused) {
+      // Pausing
+      paused = true;
+      document.getElementById("pauseBtn").textContent = "PLAY";
+      bgm.pause();
+  } else {
+      // Unpausing with countdown
+      document.getElementById("pauseBtn").textContent = "PAUSE";
+      resumeTimer = 3;
+      let countdown = setInterval(() => {
+          resumeTimer--;
+          if (resumeTimer <= 0) {
+              clearInterval(countdown);
+              paused = false;
+              bgm.play();
+          }
+      }, 1000);
+  }
 }
 
 function shareScore() {
