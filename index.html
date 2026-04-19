@@ -6,7 +6,7 @@
   <title>Flappy Bird</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Squada+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="OpenEyes.png">
   <style>
     body {
@@ -68,6 +68,7 @@
       cursor: pointer;
       z-index: 2;
     }
+
     #scoreboard {
       display: none;
       color: white;
@@ -110,13 +111,18 @@
     }
 
     .score-value {
-      color: #ffffff; /* Changed to white */
-      font-family: 'Squada One', cursive; /* Changed to Squada One */
-      font-size: 32px;
-      line-height: 32px;
+      color: #ffffff;
+      font-family: 'Bungee', cursive;
+      font-size: 36px;
+      line-height: 40px;
       margin-bottom: 4px;
-      -webkit-text-stroke: 1px black; /* Black outline */
-      text-shadow: 2px 2px 0 #000;
+      /* Heavy black outline for HTML text */
+      text-shadow: 
+        -2px -2px 0 #000,  
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+         3px  3px 0 rgba(0,0,0,0.5);
     }
 
     .buttons {
@@ -145,25 +151,6 @@
 
     #gameOverModal.show {
       display: block;
-    }
-
-    #countdown {
-      font-size: 96px;
-      font-weight: bold;
-      color: white;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: none;
-      z-index: 100;
-      pointer-events: none;
-      animation: scaleFade 1s ease forwards;
-    }
-
-    @keyframes scaleFade {
-      0% { transform: translate(-50%, -50%) scale(2); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
     }
   </style>
 </head>
@@ -206,8 +193,6 @@
     </div>
   </div>
 
-  <div id="countdown"></div>
-
   <audio id="bgm" loop src="bgm_mario.mp3"></audio>
   <audio id="sfx_wing" src="sfx_wing.wav"></audio>
   <audio id="sfx_hit" src="sfx_hit.wav"></audio>
@@ -218,7 +203,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>
-// 1. FIREBASE CONFIGURATION & INITIALIZATION
 const firebaseConfig = {
   apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
   authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
@@ -232,7 +216,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 2. GLOBAL VARIABLES
 let currentUser = null;
 let highScore = 0;
 let waitingForStart = true;
@@ -267,7 +250,6 @@ let isBlinking = false;
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
-// 3. AUTHENTICATION LOGIC
 async function handleAuth(type) {
   const uInput = document.getElementById("usernameInput");
   const pInput = document.getElementById("passwordInput");
@@ -293,16 +275,13 @@ async function handleAuth(type) {
         alert("Username already taken!");
       } else {
         await userRef.set({
-          username: u,
-          password: p,
-          highScore: 0,
-          timestamp: Date.now()
+          username: u, password: p, highScore: 0, timestamp: Date.now()
         });
-        alert("Registration successful! You can now Login.");
+        alert("Registration successful!");
       }
     } else {
       if (!doc.exists) {
-        alert("User not found. Please Register.");
+        alert("User not found.");
       } else if (doc.data().password !== p) {
         alert("Wrong password!");
       } else {
@@ -313,15 +292,13 @@ async function handleAuth(type) {
       }
     }
   } catch (err) {
-    console.error("Auth error:", err);
-    alert("Connection Error: " + err.message);
+    alert("Error: " + err.message);
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
   }
 }
 
-// 4. GAME ENGINE
 window.onload = function() {
   board = document.getElementById("board");
   board.width = boardWidth;
@@ -356,7 +333,6 @@ function update() {
   if (gameOver || paused || !currentUser) return;
 
   context.clearRect(0, 0, board.width, board.height);
-
   isBlinking = (Date.now() % 4000) < 200;
 
   if (!waitingForStart) {
@@ -366,7 +342,7 @@ function update() {
   } else {
     bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
     
-    // START TEXT PROMPT
+    // START PROMPT
     context.fillStyle = "white";
     context.strokeStyle = "black";
     context.lineWidth = 4;
@@ -395,23 +371,24 @@ function update() {
       pipe.passed = true;
       sfxPoint.play();
     }
-
-    if (detectCollision(bird, pipe)) {
-      handleGameOver();
-    }
+    if (detectCollision(bird, pipe)) handleGameOver();
   }
 
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
-  // AUTHENTIC SCORE DRAWING
+  // AUTHENTIC FLAPPY SCORE DRAWING
   if (!waitingForStart) {
-    context.fillStyle = "white";
-    context.strokeStyle = "black";
-    context.lineWidth = 6;
-    context.font = "80px 'Squada One'";
-    context.textAlign = "center";
     let displayScore = Math.floor(score);
+    context.font = "85px 'Bungee', cursive";
+    context.textAlign = "center";
+    
+    // 1. Thick Black Outline
+    context.strokeStyle = "black";
+    context.lineWidth = 10;
     context.strokeText(displayScore, board.width / 2, board.height / 6);
+    
+    // 2. White Fill
+    context.fillStyle = "white";
     context.fillText(displayScore, board.width / 2, board.height / 6);
   }
 }
@@ -422,13 +399,10 @@ function placePipes() {
   let opening = 160;
 
   pipeArray.push({
-    img: topPipeImg, x: pipeX, y: randomY,
-    width: pipeWidth, height: pipeHeight, passed: false
+    img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false
   });
-
   pipeArray.push({
-    img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening,
-    width: pipeWidth, height: pipeHeight, passed: false
+    img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening, width: pipeWidth, height: pipeHeight, passed: false
   });
 }
 
@@ -441,17 +415,13 @@ function moveBird(e) {
     bgm.play();
     sfxSwooshing.play();
   }
-
   velocityY = -6;
   sfxWing.currentTime = 0;
   sfxWing.play();
 }
 
 function detectCollision(a, b) {
-  return a.x < b.x + b.width &&
-         a.x + a.width > b.x &&
-         a.y < b.y + b.height &&
-         a.y + a.height > b.y;
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 function handleGameOver() {
@@ -460,7 +430,6 @@ function handleGameOver() {
   sfxHit.play();
   sfxDie.play();
   bgm.pause();
-
   document.getElementById("finalScore").textContent = Math.floor(score);
   document.getElementById("highScore").textContent = Math.floor(highScore);
   document.getElementById("gameOverModal").classList.add("show");
@@ -468,55 +437,34 @@ function handleGameOver() {
 
 function restartGame() {
   document.getElementById("gameOverModal").classList.remove("show");
-  bird.y = birdY;
-  velocityY = 0;
-  pipeArray = [];
-  score = 0;
-  gameOver = false;
-  waitingForStart = true;
+  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true;
 }
 
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
-  const userRef = db.collection("users").doc(currentUser);
-  const scoreRef = db.collection("scores").doc(currentUser);
-
   try {
     if (currentScoreValue > highScore) {
-      await userRef.update({ highScore: currentScoreValue });
-      await scoreRef.set({
-        name: currentUser,
-        score: currentScoreValue,
-        timestamp: Date.now()
-      });
+      await db.collection("users").doc(currentUser).update({ highScore: currentScoreValue });
+      await db.collection("scores").doc(currentUser).set({ name: currentUser, score: currentScoreValue, timestamp: Date.now() });
       highScore = currentScoreValue;
       alert("New Personal Best! 🔥");
-    } else {
-      alert("Best Score: " + highScore);
     }
     switchTab("scoreboard");
-  } catch (err) {
-    console.error("Error saving score:", err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 async function showScoreboard() {
   const sb = document.getElementById("scoreboard");
   sb.style.display = "block";
   sb.innerHTML = "LOADING...";
-
   try {
     const snap = await db.collection("scores").orderBy("score", "desc").limit(10).get();
     let html = "<h3>🏆 TOP 10</h3>";
     let rank = 1;
-    snap.forEach(doc => {
-      html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`;
-    });
+    snap.forEach(doc => { html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`; });
     sb.innerHTML = html || "<h3>🏆 TOP 10</h3><p>No scores yet</p>";
-  } catch (err) {
-    sb.innerHTML = "Error loading scores.";
-  }
+  } catch (err) { sb.innerHTML = "Error loading scores."; }
 }
 
 function switchTab(tab) {
@@ -525,15 +473,11 @@ function switchTab(tab) {
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
-
   if (tab === "scoreboard") {
     document.getElementById("gameOverModal").classList.remove("show");
     showScoreboard();
   } 
-
-  if (tab === "game" && gameOver) {
-    restartGame();
-  }
+  if (tab === "game" && gameOver) restartGame();
 }
 
 function togglePause() {
@@ -543,12 +487,9 @@ function togglePause() {
 }
 
 function shareScore() {
-  const text = `${currentUser.toUpperCase()} scored ${Math.floor(score)} in Flappy Bird! Beat me!`;
-  if (navigator.share) {
-    navigator.share({ title: "My Flappy Score", text });
-  } else {
-    alert(text);
-  }
+  const text = `${currentUser.toUpperCase()} scored ${Math.floor(score)}!`;
+  if (navigator.share) navigator.share({ title: "My Flappy Score", text });
+  else alert(text);
 }
   </script>
 </body>
