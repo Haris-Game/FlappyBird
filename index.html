@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Flappy Bird | Credit to Haris</title>
+  <title>Flappy Bird | Made by Haris</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -180,7 +180,7 @@
     .pixel-btn:hover { filter: brightness(1.2); }
     #gameOverModal.show { display: block; }
 
-    #scoreboard {
+    #scoreboard, #skinsTabContent {
       display: none;
       color: white;
       font-family: 'Press Start 2P', monospace;
@@ -192,6 +192,17 @@
       margin: 80px auto 0;
       line-height: 1.6;
     }
+
+    .skin-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      padding: 10px;
+      border-bottom: 1px solid #333;
+    }
+
+    .skin-img { width: 34px; height: 24px; image-rendering: pixelated; }
 
     .sb-filters {
       display: flex;
@@ -240,6 +251,7 @@
   <div class="tabs">
     <button id="gameTab" class="active">Game</button>
     <button id="scoreboardTab">Scoreboard</button>
+    <button id="skinsTab">Skins</button>
     <div id="userDisplay"></div>
   </div>
 
@@ -257,6 +269,26 @@
         <button class="filter-btn" onclick="changeFilter('daily', this)">DAILY</button>
     </div>
     <div id="scoreList">Loading...</div>
+  </div>
+
+  <div id="skinsTabContent">
+    <h3 style="font-size: 14px; color: gold;">SKINS</h3>
+    <div class="skin-item">
+      <img src="OpenEyes.png" class="skin-img" id="skin0">
+      <span style="font-size: 8px;">DEFAULT (0+)</span>
+    </div>
+    <div class="skin-item">
+      <img src="BlueOpenEyes.png" class="skin-img" id="skin200">
+      <span style="font-size: 8px;">BLUE (200+)</span>
+    </div>
+    <div class="skin-item">
+      <img src="GreenOpenEyes.png" class="skin-img" id="skin400">
+      <span style="font-size: 8px;">GREEN (400+)</span>
+    </div>
+    <div class="skin-item">
+      <img src="LegendaryOpenEyes.png" class="skin-img" id="skin800">
+      <span style="font-size: 8px;">MYTHIC (800+)</span>
+    </div>
   </div>
 
   <div id="gameOverModal">
@@ -334,6 +366,22 @@ let resumeTimer = 0;
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
+function updateBirdSkins() {
+    if (highScore >= 800) {
+        birdImg.src = "LegendaryOpenEyes.png";
+        birdBlinkImg.src = "LegendaryCloseEyes.png";
+    } else if (highScore >= 400) {
+        birdImg.src = "GreenOpenEyes.png";
+        birdBlinkImg.src = "GreenCloseEyes.png";
+    } else if (highScore >= 200) {
+        birdImg.src = "BlueOpenEyes.png";
+        birdBlinkImg.src = "BlueCloseEyes.png";
+    } else {
+        birdImg.src = "OpenEyes.png";
+        birdBlinkImg.src = "ClosedEyes.png";
+    }
+}
+
 function toggleAuthMode() {
   const title = document.getElementById("authTitle");
   const btn = document.getElementById("authPrimaryBtn");
@@ -386,6 +434,9 @@ async function processAuth() {
         const userData = doc.data();
         userGender = userData.gender || 'male';
         highScore = userData.highScore || 0;
+        
+        updateBirdSkins();
+        
         const displayEmoji = (userGender === 'female') ? "👩" : "👨";
         document.getElementById("userDisplay").innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
         document.getElementById("authContainer").style.display = "none";
@@ -398,8 +449,10 @@ window.onload = function() {
   board = document.getElementById("board");
   board.width = boardWidth; board.height = boardHeight;
   context = board.getContext("2d");
+  
   birdImg.src = "OpenEyes.png";
   birdBlinkImg.src = "ClosedEyes.png";
+  
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
   bgm = document.getElementById("bgm");
@@ -408,9 +461,12 @@ window.onload = function() {
   sfxPoint = document.getElementById("sfx_point");
   sfxSwooshing = document.getElementById("sfx_swooshing");
   sfxDie = document.getElementById("sfx_die");
+
   document.getElementById("pauseBtn").onclick = togglePause;
   document.getElementById("gameTab").onclick = () => switchTab("game");
   document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
+  document.getElementById("skinsTab").onclick = () => switchTab("skins");
+
   document.addEventListener("keydown", moveBird);
   document.addEventListener("touchstart", moveBird);
   requestAnimationFrame(update);
@@ -422,11 +478,19 @@ function update() {
   if (!currentUser) return;
 
   context.clearRect(0, 0, board.width, board.height);
+  
   isBlinking = (Date.now() % 4000) < 200;
+  
+  // Update skins tab preview blinking
+  document.getElementById("skin0").src = isBlinking ? "ClosedEyes.png" : "OpenEyes.png";
+  document.getElementById("skin200").src = isBlinking ? "BlueCloseEyes.png" : "BlueOpenEyes.png";
+  document.getElementById("skin400").src = isBlinking ? "GreenCloseEyes.png" : "GreenOpenEyes.png";
+  document.getElementById("skin800").src = isBlinking ? "LegendaryCloseEyes.png" : "LegendaryOpenEyes.png";
 
-  // DRAWING DURING RESUME TIMER (FIXED 3 SEC DISPLAY)
+  let currentBirdFrame = isBlinking ? birdBlinkImg : birdImg;
+
   if (resumeTimer > 0) {
-      context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+      context.drawImage(currentBirdFrame, bird.x, bird.y, bird.width, bird.height);
       for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
       
       context.fillStyle = "gold";
@@ -440,7 +504,7 @@ function update() {
   }
 
   if (gameOver || paused) {
-      context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+      context.drawImage(currentBirdFrame, bird.x, bird.y, bird.width, bird.height);
       for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
       return;
   }
@@ -456,7 +520,7 @@ function update() {
     context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
   }
   
-  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+  context.drawImage(currentBirdFrame, bird.x, bird.y, bird.width, bird.height);
   if (!waitingForStart && bird.y + bird.height >= board.height) handleGameOver();
   
   for (let i = 0; i < pipeArray.length; i++) {
@@ -480,6 +544,7 @@ function update() {
 
 function placePipes() {
   if (gameOver || paused || waitingForStart || resumeTimer > 0) return;
+  
   let randomY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
   let opening = 160;
   pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
@@ -502,7 +567,12 @@ function handleGameOver() {
   gameOver = true;
   sfxHit.play(); sfxDie.play(); bgm.pause();
   let currentSessionScore = Math.floor(score);
-  if (currentSessionScore > highScore) { highScore = currentSessionScore; }
+  
+  if (currentSessionScore > highScore) { 
+      highScore = currentSessionScore; 
+      updateBirdSkins();
+  }
+  
   document.getElementById("finalScore").textContent = currentSessionScore;
   document.getElementById("highScore").textContent = highScore;
   document.getElementById("gameOverModal").classList.add("show");
@@ -529,7 +599,7 @@ async function addToScoreboard() {
       });
       alert("New personal best saved! 🚀");
     } else {
-      alert("Score saved! (Your record remains your highest score)");
+      alert("Score saved!");
     }
 
     const userRef = db.collection("users").doc(currentUser);
@@ -584,10 +654,15 @@ async function showScoreboard() {
 function switchTab(tab) {
   document.getElementById("gameTab").classList.toggle("active", tab === "game");
   document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
+  document.getElementById("skinsTab").classList.toggle("active", tab === "skins");
+
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
+  document.getElementById("skinsTabContent").style.display = (tab === "skins") ? "block" : "none";
+
   if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
+  if (tab === "skins") { document.getElementById("gameOverModal").classList.remove("show"); }
   if (tab === "game" && gameOver) restartGame();
 }
 
