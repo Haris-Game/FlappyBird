@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="OpenEyes.png">
   <style>
     body {
       font-family: 'Press Start 2P', monospace;
@@ -311,15 +310,14 @@ const birdHeight = 24;
 const birdX = boardWidth / 8;
 const birdY = boardHeight / 2;
 
-// GROUND CONFIGURATION
-const groundHeight = 50; // The height of your grass image
+const groundHeight = 50; 
 let groundX = 0;
 
 let birdImg = new Image();
 let birdBlinkImg = new Image();
 let topPipeImg = new Image();
 let bottomPipeImg = new Image();
-let groundImg = new Image(); // The new image from your upload
+let groundImg = new Image();
 
 let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
 let pipeArray = [];
@@ -412,7 +410,7 @@ window.onload = function() {
   birdBlinkImg.src = "ClosedEyes.png";
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
-  groundImg.src = "image_a51b79.png"; // MAKE SURE THIS FILENAME MATCHES YOUR LOCAL FILE
+  groundImg.src = "image_a51b79.png"; 
   bgm = document.getElementById("bgm");
   sfxWing = document.getElementById("sfx_wing");
   sfxHit = document.getElementById("sfx_hit");
@@ -437,10 +435,9 @@ function update() {
 
   if (!waitingForStart) {
     velocityY += gravity;
-    bird.y = Math.max(bird.y + velocityY, 0); // Allow going up, but not below floor
+    bird.y = Math.max(bird.y + velocityY, 0); 
     velocityX = -2;
     
-    // GROUND MOVEMENT
     groundX += velocityX;
     if (groundX <= -boardWidth) groundX = 0;
   } else {
@@ -454,14 +451,7 @@ function update() {
     context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
   }
 
-  // COLLISION WITH GROUND LINE
-  // If the bottom of the bird touches the top of the ground area
-  if (!waitingForStart && bird.y + bird.height >= board.height - groundHeight) {
-      bird.y = board.height - groundHeight - bird.height; // Snap to ground
-      handleGameOver();
-  }
-
-  // DRAW PIPES
+  // --- DRAWING PIPES ---
   for (let i = 0; i < pipeArray.length; i++) {
     let pipe = pipeArray[i];
     if (!waitingForStart) pipe.x += velocityX;
@@ -473,17 +463,23 @@ function update() {
   }
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
-  // DRAW BIRD
-  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
-
-  // DRAW GROUND (Two copies for seamless looping)
+  // --- DRAWING GROUND ---
   context.drawImage(groundImg, groundX, board.height - groundHeight, boardWidth, groundHeight);
   context.drawImage(groundImg, groundX + boardWidth, board.height - groundHeight, boardWidth, groundHeight);
 
+  // --- GROUND COLLISION ---
+  if (!waitingForStart && bird.y + bird.height >= board.height - groundHeight) {
+      handleGameOver();
+  }
+
+  // --- DRAWING BIRD ---
+  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  // --- DRAWING SCORE (LAST = TOP LAYER) ---
   if (!waitingForStart) {
     context.fillStyle = "white";
     context.strokeStyle = "black";
-    context.lineWidth = 4;
+    context.lineWidth = 6;
     context.font = "40px 'Press Start 2P'";
     context.textAlign = "center";
     context.strokeText(Math.floor(score), board.width / 2, board.height / 5);
