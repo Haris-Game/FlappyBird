@@ -439,7 +439,7 @@ function update() {
     context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
   }
 
-  // 1. DRAW PIPES (Back Layer)
+  // 1. DRAW PIPES FIRST (Bottom Layer)
   for (let i = 0; i < pipeArray.length; i++) {
     let pipe = pipeArray[i];
     if (!waitingForStart) pipe.x += velocityX;
@@ -451,11 +451,11 @@ function update() {
   }
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
-  // 2. DRAW GROUND (Middle Layer)
+  // 2. DRAW GROUND (Above Pipes)
   context.drawImage(groundImg, groundX, board.height - groundHeight, boardWidth, groundHeight);
   context.drawImage(groundImg, groundX + boardWidth, board.height - groundHeight, boardWidth, groundHeight);
 
-  // 3. DRAW BIRD (Front Layer)
+  // 3. DRAW BIRD (Above Ground)
   context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
 
   // 4. CHECK GROUND COLLISION
@@ -463,7 +463,7 @@ function update() {
       handleGameOver();
   }
 
-  // 5. DRAW SCORE (Absolute Top Layer)
+  // 5. DRAW SCORE LAST (Top Layer)
   if (!waitingForStart) {
     context.fillStyle = "white";
     context.strokeStyle = "black";
