@@ -345,7 +345,7 @@ async function processAuth() {
       else {
         currentUser = u;
         highScore = doc.data().highScore || 0;
-        document.getElementById("userDisplay").textContent = "PLAYER: " + u.toUpperCase();
+        document.getElementById("userDisplay").textContent = "👨" + u.toUpperCase();
         document.getElementById("authContainer").style.display = "none";
       }
     }
