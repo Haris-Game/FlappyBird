@@ -93,23 +93,24 @@
 
     .tabs button.active { background: gold; }
 
-    /* Fix for the Emoji Alignment */
+    /* --- EMOJI ALIGNMENT FIX --- */
     #userDisplay {
       color: gold; 
       font-size: 8px; 
-      margin-left: 10px;
+      margin-left: 15px;
       display: inline-flex;
       align-items: center;
-      line-height: 1;
+      vertical-align: middle;
+      gap: 5px;
     }
 
     .user-emoji {
-      font-size: 12px; /* Adjusted to look same height as 8px Press Start 2P */
-      margin-right: 5px;
-      line-height: 1;
+      font-size: 14px; /* Slightly larger to match visual weight of pixel font */
+      line-height: 0;
       display: inline-block;
-      vertical-align: middle;
+      transform: translateY(2px); /* Nudges emoji down to the text baseline */
     }
+    /* --------------------------- */
 
     #board {
       display: block;
@@ -237,7 +238,7 @@
   <div class="tabs">
     <button id="gameTab" class="active">Game</button>
     <button id="scoreboardTab">Scoreboard</button>
-    <span id="userDisplay"></span>
+    <div id="userDisplay"></div>
   </div>
 
   <canvas id="board"></canvas>
@@ -365,8 +366,13 @@ async function processAuth() {
       else {
         currentUser = u;
         highScore = doc.data().highScore || 0;
-        // Wrapped emoji in span for styling
-        document.getElementById("userDisplay").innerHTML = `<span class="user-emoji">👨</span>${u.toUpperCase()}`;
+        
+        // --- UPDATED EMOJI HTML ---
+        document.getElementById("userDisplay").innerHTML = `
+          <span class="user-emoji">👨</span>
+          <span>${u.toUpperCase()}</span>
+        `;
+        
         document.getElementById("authContainer").style.display = "none";
       }
     }
