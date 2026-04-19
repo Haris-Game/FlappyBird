@@ -501,23 +501,29 @@ async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
   try {
-    // SYSTEM FIX: Use .add() to create a unique entry with its own ID every time. 
-    // This ensures no old scores are ever overwritten.
-    await db.collection("scores").add({
-      name: currentUser,
-      score: currentScoreValue,
-      gender: userGender,
-      timestamp: Date.now()
-    });
+    const scoreRef = db.collection("scores").doc(currentUser);
+    const docSnap = await scoreRef.get();
 
-    // Update the local highscore if this run was better
+    // Check if user exists and if the new score is actually a high score
+    if (!docSnap.exists || currentScoreValue > (docSnap.data().score || 0)) {
+      await scoreRef.set({
+        name: currentUser,
+        score: currentScoreValue,
+        gender: userGender,
+        timestamp: Date.now()
+      });
+      alert("New personal best saved! 🚀");
+    } else {
+      alert("Score saved! (Your record remains your highest score)");
+    }
+
+    // Also update the main user profile highscore
     const userRef = db.collection("users").doc(currentUser);
-    const doc = await userRef.get();
-    if (doc.exists && currentScoreValue > (doc.data().highScore || 0)) {
+    const userDoc = await userRef.get();
+    if (userDoc.exists && currentScoreValue > (userDoc.data().highScore || 0)) {
         await userRef.update({ highScore: currentScoreValue });
     }
 
-    alert("Score added to leaderboard! 🚀");
     switchTab("scoreboard");
   } catch (err) { 
     console.error(err); 
