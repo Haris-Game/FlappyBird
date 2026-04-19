@@ -311,15 +311,14 @@ const birdHeight = 24;
 const birdX = boardWidth / 8;
 const birdY = boardHeight / 2;
 
-// GROUND CONFIGURATION
-const groundHeight = 50; // The height of your grass image
+const groundHeight = 50; 
 let groundX = 0;
 
 let birdImg = new Image();
 let birdBlinkImg = new Image();
 let topPipeImg = new Image();
 let bottomPipeImg = new Image();
-let groundImg = new Image(); // The new image from your upload
+let groundImg = new Image();
 
 let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
 let pipeArray = [];
@@ -373,13 +372,7 @@ async function processAuth() {
     if (authMode === 'register') {
       if (doc.exists) { alert("Username exists!"); } 
       else {
-        await userRef.set({ 
-            username: u, 
-            password: p, 
-            gender: g, 
-            highScore: 0, 
-            timestamp: Date.now() 
-        });
+        await userRef.set({ username: u, password: p, gender: g, highScore: 0, timestamp: Date.now() });
         alert("Success! Now Login.");
         toggleAuthMode();
       }
@@ -390,14 +383,8 @@ async function processAuth() {
         const userData = doc.data();
         userGender = userData.gender || 'male';
         highScore = userData.highScore || 0;
-        
         const displayEmoji = (userGender === 'female') ? "👩" : "👨";
-        
-        document.getElementById("userDisplay").innerHTML = `
-          <span class="user-emoji">${displayEmoji}</span>
-          <span>${u.toUpperCase()}</span>
-        `;
-        
+        document.getElementById("userDisplay").innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
         document.getElementById("authContainer").style.display = "none";
       }
     }
@@ -412,7 +399,7 @@ window.onload = function() {
   birdBlinkImg.src = "ClosedEyes.png";
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
-  groundImg.src = "image_a51b79.png"; // MAKE SURE THIS FILENAME MATCHES YOUR LOCAL FILE
+  groundImg.src = "image_a51b79.png"; 
   bgm = document.getElementById("bgm");
   sfxWing = document.getElementById("sfx_wing");
   sfxHit = document.getElementById("sfx_hit");
@@ -437,10 +424,8 @@ function update() {
 
   if (!waitingForStart) {
     velocityY += gravity;
-    bird.y = Math.max(bird.y + velocityY, 0); // Allow going up, but not below floor
+    bird.y = Math.max(bird.y + velocityY, 0); 
     velocityX = -2;
-    
-    // GROUND MOVEMENT
     groundX += velocityX;
     if (groundX <= -boardWidth) groundX = 0;
   } else {
@@ -454,14 +439,7 @@ function update() {
     context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
   }
 
-  // COLLISION WITH GROUND LINE
-  // If the bottom of the bird touches the top of the ground area
-  if (!waitingForStart && bird.y + bird.height >= board.height - groundHeight) {
-      bird.y = board.height - groundHeight - bird.height; // Snap to ground
-      handleGameOver();
-  }
-
-  // DRAW PIPES
+  // 1. DRAW PIPES (Back Layer)
   for (let i = 0; i < pipeArray.length; i++) {
     let pipe = pipeArray[i];
     if (!waitingForStart) pipe.x += velocityX;
@@ -473,17 +451,23 @@ function update() {
   }
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
 
-  // DRAW BIRD
-  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
-
-  // DRAW GROUND (Two copies for seamless looping)
+  // 2. DRAW GROUND (Middle Layer)
   context.drawImage(groundImg, groundX, board.height - groundHeight, boardWidth, groundHeight);
   context.drawImage(groundImg, groundX + boardWidth, board.height - groundHeight, boardWidth, groundHeight);
 
+  // 3. DRAW BIRD (Front Layer)
+  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  // 4. CHECK GROUND COLLISION
+  if (!waitingForStart && bird.y + bird.height >= board.height - groundHeight) {
+      handleGameOver();
+  }
+
+  // 5. DRAW SCORE (Absolute Top Layer)
   if (!waitingForStart) {
     context.fillStyle = "white";
     context.strokeStyle = "black";
-    context.lineWidth = 4;
+    context.lineWidth = 6;
     context.font = "40px 'Press Start 2P'";
     context.textAlign = "center";
     context.strokeText(Math.floor(score), board.width / 2, board.height / 5);
@@ -533,25 +517,19 @@ async function addToScoreboard() {
     const userRef = db.collection("users").doc(currentUser);
     const doc = await userRef.get();
     const dbHigh = doc.data().highScore || 0;
-
     if (currentScoreValue > dbHigh) {
       await userRef.update({ highScore: currentScoreValue });
       highScore = currentScoreValue;
     }
-
     await db.collection("scores").add({
       name: currentUser,
       score: currentScoreValue,
       gender: userGender,
       timestamp: Date.now()
     });
-
-    alert("Score saved to leaderboard! 🚀");
+    alert("Score saved! 🚀");
     switchTab("scoreboard");
-  } catch (err) { 
-    console.error(err); 
-    alert("Error saving score.");
-  }
+  } catch (err) { alert("Error saving score."); }
 }
 
 function changeFilter(type, btn) {
@@ -568,18 +546,14 @@ async function showScoreboard() {
   let startTime = 0;
   if (currentFilter === 'daily') startTime = now - (24 * 60 * 60 * 1000);
   else if (currentFilter === 'weekly') startTime = now - (7 * 24 * 60 * 60 * 1000);
-
   try {
     let query = db.collection("scores").orderBy("score", "desc");
-    if (currentFilter !== 'global') {
-        query = query.where("timestamp", ">=", startTime);
-    }
+    if (currentFilter !== 'global') query = query.where("timestamp", ">=", startTime);
     const snap = await query.limit(10).get();
     let html = "";
     let rank = 1;
-    if (snap.empty) {
-        html = "<p style='text-align:center'>NO SCORES YET</p>";
-    } else {
+    if (snap.empty) html = "<p style='text-align:center'>NO SCORES YET</p>";
+    else {
         snap.forEach(doc => {
             const d = doc.data();
             const emoji = (d.gender === 'female') ? "👩" : "👨";
@@ -587,10 +561,7 @@ async function showScoreboard() {
         });
     }
     scoreList.innerHTML = html;
-  } catch (err) { 
-      console.error(err);
-      scoreList.innerHTML = "ERROR LOADING."; 
-  }
+  } catch (err) { scoreList.innerHTML = "ERROR LOADING."; }
 }
 
 function switchTab(tab) {
@@ -599,10 +570,7 @@ function switchTab(tab) {
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
-  if (tab === "scoreboard") { 
-      document.getElementById("gameOverModal").classList.remove("show"); 
-      showScoreboard(); 
-  } 
+  if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
   if (tab === "game" && gameOver) restartGame();
 }
 
@@ -617,6 +585,6 @@ function shareScore() {
   if (navigator.share) navigator.share({ title: "My Flappy Score", text });
   else alert(text);
 }
-  </script>
+</script>
 </body>
 </html>
