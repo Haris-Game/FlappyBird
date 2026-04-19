@@ -171,6 +171,118 @@
   </style>
 </head>
 <body>
+  <div id="authContainer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+    <h2 id="authTitle" style="margin-bottom: 20px;">FLAPPY LOGIN</h2>
+    
+    <input type="text" id="usernameInput" placeholder="USERNAME" style="padding: 10px; margin-bottom: 10px; font-family: 'Press Start 2P'; font-size: 10px; width: 250px;">
+    <input type="password" id="passwordInput" placeholder="PASSWORD" style="padding: 10px; margin-bottom: 20px; font-family: 'Press Start 2P'; font-size: 10px; width: 250px;">
+    
+    <div id="loginOps" style="display: flex; flex-direction: column; gap: 10px;">
+      <button class="pixel-btn" onclick="handleAuth('login')">LOGIN</button>
+      <button class="pixel-btn" style="background: #444;" onclick="handleAuth('register')">REGISTER NEW ACCOUNT</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button id="gameTab" class="active">Game</button>
+    <button id="scoreboardTab">Scoreboard</button>
+    <span id="userDisplay" style="color: gold; font-size: 10px; margin-left: 10px;"></span>
+  </div>
+
+  <canvas id="board"></canvas>
+
+  <div id="gameContainer">
+    <button id="pauseBtn">Pause</button>
+  </div>
+
+  <div id="scoreboard"></div>
+
+  <div id="gameOverModal">
+    <div class="popup">
+      <div class="score-label">SCORE</div>
+      <div class="score-value" id="finalScore">0</div>
+      <div class="score-label">BEST</div>
+      <div class="score-value" id="highScore">0</div>
+    </div>
+    <div class="buttons">
+      <button class="pixel-btn" onclick="restartGame()">RESTART</button>
+      <button class="pixel-btn" onclick="shareScore()">SHARE</button>
+      <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
+    </div>
+  </div>
+
+  <div id="countdown"></div>
+
+  <audio id="bgm" loop src="bgm_mario.mp3"></audio>
+  <audio id="sfx_wing" src="sfx_wing.wav"></audio>
+  <audio id="sfx_hit" src="sfx_hit.wav"></audio>
+  <audio id="sfx_point" src="sfx_point.wav"></audio>
+  <audio id="sfx_swooshing" src="sfx_swooshing.wav"></audio>
+  <audio id="sfx_die" src="sfx_die.wav"></audio>
+
+  <script>
+    // New Auth Logic
+    let currentUser = null;
+
+    async function handleAuth(type) {
+      const u = document.getElementById("usernameInput").value.trim().toLowerCase();
+      const p = document.getElementById("passwordInput").value.trim();
+
+      if (!u || !p) return alert("Fill in both fields!");
+
+      const userRef = db.collection("users").doc(u);
+      const doc = await userRef.get();
+
+      if (type === 'register') {
+        if (doc.exists) return alert("Username already taken!");
+        await userRef.set({ username: u, password: p, highScore: 0 });
+        alert("Registered! Now Login.");
+      } else {
+        if (!doc.exists || doc.data().password !== p) {
+          return alert("Invalid username or password!");
+        }
+        currentUser = u;
+        document.getElementById("userDisplay").textContent = "Player: " + u.toUpperCase();
+        document.getElementById("authContainer").style.display = "none";
+        highScore = doc.data().highScore || 0;
+      }
+    }
+
+    // UPDATED SCOREBOARD LOGIC TO USE LOGGED IN USER
+    async function addToScoreboard() {
+      if (!currentUser) return alert("Please log in first!");
+      
+      const playerScore = Math.floor(score);
+      const userRef = db.collection("users").doc(currentUser);
+      const scoreRef = db.collection("scores").doc(currentUser);
+
+      try {
+        const doc = await userRef.get();
+        const existingBest = doc.data().highScore || 0;
+
+        if (playerScore > existingBest) {
+          // Update User profile
+          await userRef.update({ highScore: playerScore });
+          // Update Public Leaderboard
+          await scoreRef.set({
+            name: currentUser,
+            score: playerScore,
+            timestamp: Date.now()
+          });
+          highScore = playerScore;
+          alert("New Personal Best! 🔥");
+        } else {
+          alert(`Your best is ${existingBest}. Keep trying!`);
+        }
+        switchTab("scoreboard");
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Standard Game Scripts (Keep your existing update, moveBird, restartGame functions here)
+    // ... [Insert the rest of your original script logic here] ...
+  </script>
   <div class="tabs">
     <button id="gameTab" class="active">Game</button>
     <button id="scoreboardTab">Scoreboard</button>
