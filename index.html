@@ -205,7 +205,20 @@
       justify-content: space-between;
       margin-bottom: 15px;
       padding: 10px;
-      border-bottom: 1px solid #333;
+      border: 2px solid transparent;
+      cursor: pointer;
+    }
+
+    .skin-item:hover { background: rgba(255, 255, 255, 0.1); }
+    
+    .skin-item.selected {
+      border: 2px solid gold;
+      background: rgba(255, 215, 0, 0.2);
+    }
+
+    .skin-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .skin-img { width: 34px; height: 24px; image-rendering: pixelated; }
@@ -279,20 +292,20 @@
   </div>
 
   <div id="skinsTabContent">
-    <h3 style="font-size: 14px; color: gold;">SKINS</h3>
-    <div class="skin-item">
+    <h3 style="font-size: 14px; color: gold;">SELECT SKIN</h3>
+    <div class="skin-item" id="item0" onclick="selectSkin('default', 0)">
       <img src="OpenEyes.png" class="skin-img" id="skin0">
       <span style="font-size: 8px;">DEFAULT (0+)</span>
     </div>
-    <div class="skin-item">
+    <div class="skin-item" id="item200" onclick="selectSkin('blue', 200)">
       <img src="BlueOpenEyes.png" class="skin-img" id="skin200">
       <span style="font-size: 8px;">BLUE (200+)</span>
     </div>
-    <div class="skin-item">
+    <div class="skin-item" id="item400" onclick="selectSkin('red', 400)">
       <img src="RedOpenEyes.png" class="skin-img" id="skin400">
       <span style="font-size: 8px;">RED (400+)</span>
     </div>
-    <div class="skin-item">
+    <div class="skin-item" id="item800" onclick="selectSkin('legendary', 800)">
       <img src="LegendaryOpenEyes.png" class="skin-img" id="skin800">
       <span style="font-size: 8px;">MYTHIC (800+)</span>
     </div>
@@ -335,13 +348,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- IMAGE PRELOADING TO FIX DISAPPEARING BIRD ---
 const preloadedImages = {};
 function preload(name, src) {
     preloadedImages[name] = new Image();
     preloadedImages[name].src = src;
 }
-// Preloading all possible states
 preload("defaultOpen", "OpenEyes.png");
 preload("defaultClosed", "ClosedEyes.png");
 preload("blueOpen", "BlueOpenEyes.png");
@@ -358,6 +369,7 @@ let currentFilter = 'global';
 let waitingForStart = true;
 let board, context;
 let authMode = 'login';
+let selectedSkin = 'default'; // Player's manual choice
 
 const boardWidth = 360;
 const boardHeight = 640;
@@ -390,13 +402,39 @@ let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
 function updateBirdSkins(blinking) {
     let target = "";
-    if (highScore >= 800) target = blinking ? "legClosed" : "legOpen";
-    else if (highScore >= 400) target = blinking ? "redClosed" : "redOpen";
-    else if (highScore >= 200) target = blinking ? "blueClosed" : "blueOpen";
+    if (selectedSkin === 'legendary') target = blinking ? "legClosed" : "legOpen";
+    else if (selectedSkin === 'red') target = blinking ? "redClosed" : "redOpen";
+    else if (selectedSkin === 'blue') target = blinking ? "blueClosed" : "blueOpen";
     else target = blinking ? "defaultClosed" : "defaultOpen";
     
-    // Set the source from the preloaded object to prevent flickering/disappearing
     birdImg.src = preloadedImages[target].src;
+}
+
+function selectSkin(skinName, requiredScore) {
+    if (highScore >= requiredScore) {
+        selectedSkin = skinName;
+        refreshSkinUI();
+        alert(skinName.toUpperCase() + " Bird Selected!");
+    } else {
+        alert("Locked! Reach " + requiredScore + " High Score first.");
+    }
+}
+
+function refreshSkinUI() {
+    // Remove selected class from all
+    document.querySelectorAll('.skin-item').forEach(el => el.classList.remove('selected', 'locked'));
+    
+    // Lock logic visual
+    if (highScore < 200) document.getElementById('item200').classList.add('locked');
+    if (highScore < 400) document.getElementById('item400').classList.add('locked');
+    if (highScore < 800) document.getElementById('item800').classList.add('locked');
+
+    // Select logic visual
+    let activeId = 'item0';
+    if (selectedSkin === 'blue') activeId = 'item200';
+    if (selectedSkin === 'red') activeId = 'item400';
+    if (selectedSkin === 'legendary') activeId = 'item800';
+    document.getElementById(activeId).classList.add('selected');
 }
 
 function toggleAuthMode() {
@@ -446,6 +484,7 @@ async function processAuth() {
         userGender = userData.gender || 'male';
         highScore = userData.highScore || 0; 
         
+        refreshSkinUI();
         updateBirdSkins(false);
         
         const displayEmoji = (userGender === 'female') ? "👩" : "👨";
@@ -492,7 +531,6 @@ function update() {
   isBlinking = (Date.now() % 4000) < 200;
   updateBirdSkins(isBlinking);
 
-  // Sync menu skins with preloaded blink assets
   document.getElementById("skin0").src = isBlinking ? preloadedImages["defaultClosed"].src : preloadedImages["defaultOpen"].src;
   document.getElementById("skin200").src = isBlinking ? preloadedImages["blueClosed"].src : preloadedImages["blueOpen"].src;
   document.getElementById("skin400").src = isBlinking ? preloadedImages["redClosed"].src : preloadedImages["redOpen"].src;
@@ -645,7 +683,7 @@ function switchTab(tab) {
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
   document.getElementById("skinsTabContent").style.display = (tab === "skins") ? "block" : "none";
   if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
-  if (tab === "skins") { document.getElementById("gameOverModal").classList.remove("show"); }
+  if (tab === "skins") { document.getElementById("gameOverModal").classList.remove("show"); refreshSkinUI(); }
   if (tab === "game" && gameOver) restartGame();
 }
 
