@@ -93,7 +93,6 @@
 
     .tabs button.active { background: gold; }
 
-    /* --- EMOJI ALIGNMENT FIX --- */
     #userDisplay {
       color: gold; 
       font-size: 8px; 
@@ -110,7 +109,6 @@
       display: inline-block;
       transform: translateY(2px); 
     }
-    /* --------------------------- */
 
     #board {
       display: block;
@@ -299,6 +297,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentUser = null;
+let userGender = 'male';
 let highScore = 0;
 let currentFilter = 'global';
 let waitingForStart = true;
@@ -384,10 +383,10 @@ async function processAuth() {
       else {
         currentUser = u;
         const userData = doc.data();
+        userGender = userData.gender || 'male';
         highScore = userData.highScore || 0;
         
-        // Determine correct emoji based on saved gender
-        const displayEmoji = (userData.gender === 'female') ? "👩" : "👨";
+        const displayEmoji = (userGender === 'female') ? "👩" : "👨";
         
         document.getElementById("userDisplay").innerHTML = `
           <span class="user-emoji">${displayEmoji}</span>
@@ -505,23 +504,24 @@ async function addToScoreboard() {
   const currentScoreValue = Math.floor(score);
   try {
     const userRef = db.collection("users").doc(currentUser);
-    const scoreRef = db.collection("scores").doc(currentUser);
     const doc = await userRef.get();
     const dbHigh = doc.data().highScore || 0;
 
+    // Update the high score on the user profile if needed
     if (currentScoreValue > dbHigh) {
       await userRef.update({ highScore: currentScoreValue });
-      await scoreRef.set({
-        name: currentUser,
-        score: currentScoreValue,
-        timestamp: Date.now()
-      });
       highScore = currentScoreValue;
-      alert("New Personal Best! 🚀");
-    } else {
-      alert("Score saved!");
-      await scoreRef.update({ timestamp: Date.now() });
     }
+
+    // CREATE A UNIQUE SCORE ENTRY (This prevents overwriting)
+    await db.collection("scores").add({
+      name: currentUser,
+      score: currentScoreValue,
+      gender: userGender,
+      timestamp: Date.now()
+    });
+
+    alert("Score saved to leaderboard! 🚀");
     switchTab("scoreboard");
   } catch (err) { 
     console.error(err); 
@@ -556,7 +556,9 @@ async function showScoreboard() {
         html = "<p style='text-align:center'>NO SCORES YET</p>";
     } else {
         snap.forEach(doc => {
-            html += `<p>${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`;
+            const d = doc.data();
+            const emoji = (d.gender === 'female') ? "👩" : "👨";
+            html += `<p>${rank++}. ${emoji} ${d.name.toUpperCase()}: ${d.score}</p>`;
         });
     }
     scoreList.innerHTML = html;
