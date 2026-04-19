@@ -19,7 +19,6 @@
       color: white;
     }
 
-    /* Modernized Auth Container */
     #authContainer {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -70,7 +69,6 @@
 
     .toggle-link:hover { color: gold; }
 
-    /* Tabs & Board */
     .tabs {
       position: fixed;
       top: 0; width: 100%;
@@ -81,9 +79,9 @@
 
     .tabs button {
       font-family: 'Press Start 2P', monospace;
-      font-size: 12px;
-      margin: 0 10px;
-      padding: 8px 15px;
+      font-size: 10px;
+      margin: 0 5px;
+      padding: 8px 12px;
       background: cyan;
       border: 2px solid black;
       border-radius: 10px;
@@ -119,7 +117,6 @@
       z-index: 2;
     }
 
-    /* MODAL AND VERTICAL BUTTONS */
     #gameOverModal {
       display: none;
       position: fixed;
@@ -143,9 +140,9 @@
 
     .buttons {
       display: flex;
-      flex-direction: column; /* This puts buttons under each other */
+      flex-direction: column;
       align-items: center;
-      gap: 12px; /* Adds space between the buttons */
+      gap: 12px;
     }
 
     .pixel-btn {
@@ -163,18 +160,43 @@
     .pixel-btn:hover { filter: brightness(1.2); }
     #gameOverModal.show { display: block; }
 
+    /* Updated Scoreboard UI */
     #scoreboard {
       display: none;
       color: white;
       font-family: 'Press Start 2P', monospace;
-      font-size: 14px;
       padding: 20px;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.9);
       border: 4px solid cyan;
       border-radius: 10px;
-      width: 320px;
+      width: 340px;
       margin: 80px auto 0;
       line-height: 1.6;
+    }
+
+    .sb-filters {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+
+    .filter-btn {
+      font-family: 'Press Start 2P';
+      font-size: 7px;
+      padding: 5px;
+      background: #333;
+      color: white;
+      border: 1px solid cyan;
+      cursor: pointer;
+    }
+
+    .filter-btn.active { background: cyan; color: black; }
+    
+    #scoreList {
+        text-align: left;
+        font-size: 9px;
+        margin-top: 10px;
     }
   </style>
 </head>
@@ -204,7 +226,15 @@
     <button id="pauseBtn">Pause</button>
   </div>
 
-  <div id="scoreboard"></div>
+  <div id="scoreboard">
+    <h3 style="font-size: 14px; color: gold;">LEADERBOARD</h3>
+    <div class="sb-filters">
+        <button class="filter-btn active" onclick="changeFilter('global', this)">GLOBAL</button>
+        <button class="filter-btn" onclick="changeFilter('weekly', this)">WEEKLY</button>
+        <button class="filter-btn" onclick="changeFilter('daily', this)">DAILY</button>
+    </div>
+    <div id="scoreList">Loading...</div>
+  </div>
 
   <div id="gameOverModal">
     <div class="popup">
@@ -245,6 +275,7 @@ const db = firebase.firestore();
 
 let currentUser = null;
 let highScore = 0;
+let currentFilter = 'global';
 let waitingForStart = true;
 let board, context;
 let authMode = 'login';
@@ -428,26 +459,66 @@ async function addToScoreboard() {
       const userRef = db.collection("users").doc(currentUser);
       const doc = await userRef.get();
       const dbHigh = doc.data().highScore || 0;
+      
+      // Update User Highscore if needed
       if (currentScoreValue > dbHigh) {
-        await userRef.update({ highScore: currentScoreValue });
-        await db.collection("scores").doc(currentUser).set({ name: currentUser, score: currentScoreValue, timestamp: Date.now() });
-        highScore = currentScoreValue;
-        alert("Leaderboard Updated! 🔥");
-      } else { alert("Best: " + dbHigh); }
+          await userRef.update({ highScore: currentScoreValue });
+          highScore = currentScoreValue;
+      }
+      
+      // Save this score instance for daily/weekly filtering
+      await db.collection("scores").add({
+          name: currentUser,
+          score: currentScoreValue,
+          timestamp: Date.now()
+      });
+      
+      alert("Score Added! 🚀");
       switchTab("scoreboard");
   } catch (err) { console.error(err); }
 }
 
+function changeFilter(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showScoreboard();
+}
+
 async function showScoreboard() {
-  const sb = document.getElementById("scoreboard");
-  sb.style.display = "block"; sb.innerHTML = "LOADING...";
+  const scoreList = document.getElementById("scoreList");
+  scoreList.innerHTML = "FETCHING...";
+  
+  let now = Date.now();
+  let startTime = 0;
+  
+  if (currentFilter === 'daily') startTime = now - (24 * 60 * 60 * 1000);
+  else if (currentFilter === 'weekly') startTime = now - (7 * 24 * 60 * 60 * 1000);
+
   try {
-    const snap = await db.collection("scores").orderBy("score", "desc").limit(10).get();
-    let html = "<h3>🏆 TOP 10</h3>";
+    let query = db.collection("scores").orderBy("score", "desc");
+    
+    // Apply time filter if not Global
+    if (currentFilter !== 'global') {
+        query = query.where("timestamp", ">=", startTime);
+    }
+
+    const snap = await query.limit(10).get();
+    let html = "";
     let rank = 1;
-    snap.forEach(doc => { html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`; });
-    sb.innerHTML = html || "<h3>🏆 TOP 10</h3><p>No scores yet</p>";
-  } catch (err) { sb.innerHTML = "Error loading scores."; }
+    
+    if (snap.empty) {
+        html = "<p style='text-align:center'>NO SCORES YET</p>";
+    } else {
+        snap.forEach(doc => {
+            html += `<p>${rank++}. ${doc.data().name.toUpperCase()}: ${doc.data().score}</p>`;
+        });
+    }
+    scoreList.innerHTML = html;
+  } catch (err) { 
+      console.error(err);
+      scoreList.innerHTML = "ERROR LOADING."; 
+  }
 }
 
 function switchTab(tab) {
@@ -456,7 +527,10 @@ function switchTab(tab) {
   document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
-  if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
+  if (tab === "scoreboard") { 
+      document.getElementById("gameOverModal").classList.remove("show"); 
+      showScoreboard(); 
+  } 
   if (tab === "game" && gameOver) restartGame();
 }
 
