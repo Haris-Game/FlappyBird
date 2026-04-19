@@ -373,19 +373,16 @@ let resumeTimer = 0;
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
-function updateBirdSkins() {
+// UPDATED: Logic to handle all bird skins blinking
+function updateBirdSkins(blinking) {
     if (highScore >= 800) {
-        birdImg.src = "LegendaryOpenEyes.png";
-        birdBlinkImg.src = "LegendaryCloseEyes.png";
+        birdImg.src = blinking ? "LegendaryCloseEyes.png" : "LegendaryOpenEyes.png";
     } else if (highScore >= 400) {
-        birdImg.src = "RedOpenEyes.png";
-        birdBlinkImg.src = "RedCloseEyes.png";
+        birdImg.src = blinking ? "RedCloseEyes.png" : "RedOpenEyes.png";
     } else if (highScore >= 200) {
-        birdImg.src = "BlueOpenEyes.png";
-        birdBlinkImg.src = "BlueCloseEyes.png";
+        birdImg.src = blinking ? "BlueCloseEyes.png" : "BlueOpenEyes.png";
     } else {
-        birdImg.src = "OpenEyes.png";
-        birdBlinkImg.src = "ClosedEyes.png";
+        birdImg.src = blinking ? "ClosedEyes.png" : "OpenEyes.png";
     }
 }
 
@@ -442,7 +439,8 @@ async function processAuth() {
         userGender = userData.gender || 'male';
         highScore = userData.highScore || 0;
         
-        updateBirdSkins();
+        // Initial skin setup
+        updateBirdSkins(false);
         
         const displayEmoji = (userGender === 'female') ? "👩" : "👨";
         const displayElem = document.getElementById("userDisplay");
@@ -460,7 +458,6 @@ window.onload = function() {
   context = board.getContext("2d");
   
   birdImg.src = "OpenEyes.png";
-  birdBlinkImg.src = "ClosedEyes.png";
   
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
@@ -488,14 +485,19 @@ function update() {
 
   context.clearRect(0, 0, board.width, board.height);
   
+  // Update blinking state
   isBlinking = (Date.now() % 4000) < 200;
   
+  // NEW: Update active game skin every frame to catch the blink
+  updateBirdSkins(isBlinking);
+
+  // Update skin previews in the Skins Tab
   document.getElementById("skin0").src = isBlinking ? "ClosedEyes.png" : "OpenEyes.png";
   document.getElementById("skin200").src = isBlinking ? "BlueCloseEyes.png" : "BlueOpenEyes.png";
   document.getElementById("skin400").src = isBlinking ? "RedCloseEyes.png" : "RedOpenEyes.png";
   document.getElementById("skin800").src = isBlinking ? "LegendaryCloseEyes.png" : "LegendaryOpenEyes.png";
 
-  let currentBirdFrame = isBlinking ? birdBlinkImg : birdImg;
+  let currentBirdFrame = birdImg;
 
   if (resumeTimer > 0) {
       context.drawImage(currentBirdFrame, bird.x, bird.y, bird.width, bird.height);
@@ -571,7 +573,6 @@ function handleGameOver() {
   let currentSessionScore = Math.floor(score);
   if (currentSessionScore > highScore) { 
       highScore = currentSessionScore; 
-      updateBirdSkins();
   }
   document.getElementById("finalScore").textContent = currentSessionScore;
   document.getElementById("highScore").textContent = highScore;
@@ -583,7 +584,6 @@ function restartGame() {
   bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true; resumeTimer = 0;
 }
 
-/* --- FIXED LEADERBOARD LOGIC: 1 ENTRY PER PERSON --- */
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
@@ -591,7 +591,6 @@ async function addToScoreboard() {
     const scoreRef = db.collection("scores").doc(currentUser);
     const docSnap = await scoreRef.get();
 
-    // Only update if no previous entry exists OR the new score is higher
     if (!docSnap.exists || currentScoreValue > (docSnap.data().score || 0)) {
       await scoreRef.set({
         name: currentUser,
@@ -604,7 +603,6 @@ async function addToScoreboard() {
       alert("Keep practicing! Your best score is already on the board.");
     }
 
-    // Always keep the User Profile high score in sync
     const userRef = db.collection("users").doc(currentUser);
     const userDoc = await userRef.get();
     if (userDoc.exists && currentScoreValue > (userDoc.data().highScore || 0)) {
