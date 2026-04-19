@@ -290,7 +290,7 @@
     </div>
     <div class="skin-item">
       <img src="RedOpenEyes.png" class="skin-img" id="skin400">
-      <span style="font-size: 8px;">GREEN (400+)</span>
+      <span style="font-size: 8px;">RED (400+)</span>
     </div>
     <div class="skin-item">
       <img src="LegendaryOpenEyes.png" class="skin-img" id="skin800">
@@ -303,11 +303,11 @@
       <div class="score-label">SCORE</div>
       <div class="score-value" id="finalScore">0</div>
       <div class="score-label">BEST</div>
-      <div class="score-value" id="highScore">0</div>
+      <div class="score-value" id="highScoreDisp">0</div>
     </div>
     <div class="buttons">
       <button class="pixel-btn" onclick="restartGame()">RESTART</button>
-      <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
+      <button class="pixel-btn" onclick="addToScoreboard()">SAVE & LEADERBOARD</button>
       <button class="pixel-btn" onclick="shareScore()">SHARE</button>
     </div>
   </div>
@@ -335,9 +335,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// --- IMAGE PRELOADING TO FIX DISAPPEARING BIRD ---
+const preloadedImages = {};
+function preload(name, src) {
+    preloadedImages[name] = new Image();
+    preloadedImages[name].src = src;
+}
+// Preloading all possible states
+preload("defaultOpen", "OpenEyes.png");
+preload("defaultClosed", "ClosedEyes.png");
+preload("blueOpen", "BlueOpenEyes.png");
+preload("blueClosed", "BlueCloseEyes.png");
+preload("redOpen", "RedOpenEyes.png");
+preload("redClosed", "RedCloseEyes.png");
+preload("legOpen", "LegendaryOpenEyes.png");
+preload("legClosed", "LegendaryCloseEyes.png");
+
 let currentUser = null;
 let userGender = 'male';
-let highScore = 0;
+let highScore = 0; 
 let currentFilter = 'global';
 let waitingForStart = true;
 let board, context;
@@ -372,20 +388,15 @@ let resumeTimer = 0;
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
-/**
- * FIXED BLINK LOGIC:
- * Switches current bird image based on blinking state for all unlockable skins.
- */
 function updateBirdSkins(blinking) {
-    if (highScore >= 800) {
-        birdImg.src = blinking ? "LegendaryCloseEyes.png" : "LegendaryOpenEyes.png";
-    } else if (highScore >= 400) {
-        birdImg.src = blinking ? "RedCloseEyes.png" : "RedOpenEyes.png";
-    } else if (highScore >= 200) {
-        birdImg.src = blinking ? "BlueCloseEyes.png" : "BlueOpenEyes.png";
-    } else {
-        birdImg.src = blinking ? "ClosedEyes.png" : "OpenEyes.png";
-    }
+    let target = "";
+    if (highScore >= 800) target = blinking ? "legClosed" : "legOpen";
+    else if (highScore >= 400) target = blinking ? "redClosed" : "redOpen";
+    else if (highScore >= 200) target = blinking ? "blueClosed" : "blueOpen";
+    else target = blinking ? "defaultClosed" : "defaultOpen";
+    
+    // Set the source from the preloaded object to prevent flickering/disappearing
+    birdImg.src = preloadedImages[target].src;
 }
 
 function toggleAuthMode() {
@@ -423,13 +434,7 @@ async function processAuth() {
     if (authMode === 'register') {
       if (doc.exists) { alert("Username exists!"); } 
       else {
-        await userRef.set({ 
-            username: u, 
-            password: p, 
-            gender: g, 
-            highScore: 0, 
-            timestamp: Date.now() 
-        });
+        await userRef.set({ username: u, password: p, gender: g, highScore: 0, timestamp: Date.now() });
         alert("Success! Now Login.");
         toggleAuthMode();
       }
@@ -439,7 +444,7 @@ async function processAuth() {
         currentUser = u;
         const userData = doc.data();
         userGender = userData.gender || 'male';
-        highScore = userData.highScore || 0;
+        highScore = userData.highScore || 0; 
         
         updateBirdSkins(false);
         
@@ -458,7 +463,7 @@ window.onload = function() {
   board.width = boardWidth; board.height = boardHeight;
   context = board.getContext("2d");
   
-  birdImg.src = "OpenEyes.png";
+  birdImg.src = preloadedImages["defaultOpen"].src;
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
   bgm = document.getElementById("bgm");
@@ -484,18 +489,14 @@ function update() {
   if (!currentUser) return;
 
   context.clearRect(0, 0, board.width, board.height);
-  
-  // Calculate blinking state
   isBlinking = (Date.now() % 4000) < 200;
-  
-  // Apply blink to the bird currently being used in game
   updateBirdSkins(isBlinking);
 
-  // Apply blink visual to the skins menu icons
-  document.getElementById("skin0").src = isBlinking ? "ClosedEyes.png" : "OpenEyes.png";
-  document.getElementById("skin200").src = isBlinking ? "BlueCloseEyes.png" : "BlueOpenEyes.png";
-  document.getElementById("skin400").src = isBlinking ? "RedCloseEyes.png" : "RedOpenEyes.png";
-  document.getElementById("skin800").src = isBlinking ? "LegendaryCloseEyes.png" : "LegendaryOpenEyes.png";
+  // Sync menu skins with preloaded blink assets
+  document.getElementById("skin0").src = isBlinking ? preloadedImages["defaultClosed"].src : preloadedImages["defaultOpen"].src;
+  document.getElementById("skin200").src = isBlinking ? preloadedImages["blueClosed"].src : preloadedImages["blueOpen"].src;
+  document.getElementById("skin400").src = isBlinking ? preloadedImages["redClosed"].src : preloadedImages["redOpen"].src;
+  document.getElementById("skin800").src = isBlinking ? preloadedImages["legClosed"].src : preloadedImages["legOpen"].src;
 
   if (resumeTimer > 0) {
       context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
@@ -569,11 +570,8 @@ function handleGameOver() {
   gameOver = true;
   sfxHit.play(); sfxDie.play(); bgm.pause();
   let currentSessionScore = Math.floor(score);
-  if (currentSessionScore > highScore) { 
-      highScore = currentSessionScore; 
-  }
   document.getElementById("finalScore").textContent = currentSessionScore;
-  document.getElementById("highScore").textContent = highScore;
+  document.getElementById("highScoreDisp").textContent = Math.max(currentSessionScore, highScore);
   document.getElementById("gameOverModal").classList.add("show");
 }
 
@@ -586,32 +584,23 @@ async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
   try {
-    const scoreRef = db.collection("scores").doc(currentUser);
-    const docSnap = await scoreRef.get();
-
-    if (!docSnap.exists || currentScoreValue > (docSnap.data().score || 0)) {
-      await scoreRef.set({
-        name: currentUser,
-        score: currentScoreValue,
-        gender: userGender,
-        timestamp: Date.now()
-      }, { merge: true });
-      alert("Scoreboard updated! 🚀");
-    } else {
-      alert("Keep practicing! Your best score is already on the board.");
-    }
-
     const userRef = db.collection("users").doc(currentUser);
-    const userDoc = await userRef.get();
-    if (userDoc.exists && currentScoreValue > (userDoc.data().highScore || 0)) {
+    if (currentScoreValue > highScore) {
+        highScore = currentScoreValue; 
         await userRef.update({ highScore: currentScoreValue });
     }
 
+    const scoreRef = db.collection("scores").doc(currentUser);
+    await scoreRef.set({
+      name: currentUser,
+      score: highScore, 
+      gender: userGender,
+      timestamp: Date.now()
+    }, { merge: true });
+
+    alert("Progress saved permanently!");
     switchTab("scoreboard");
-  } catch (err) { 
-    console.error(err); 
-    alert("Error saving score.");
-  }
+  } catch (err) { alert("Error saving progress."); }
 }
 
 function changeFilter(type, btn) {
@@ -644,10 +633,7 @@ async function showScoreboard() {
         });
     }
     scoreList.innerHTML = html;
-  } catch (err) { 
-      console.error(err);
-      scoreList.innerHTML = "ERROR LOADING."; 
-  }
+  } catch (err) { scoreList.innerHTML = "ERROR LOADING."; }
 }
 
 function switchTab(tab) {
@@ -684,7 +670,7 @@ function togglePause() {
 }
 
 function shareScore() {
-  const text = `${currentUser.toUpperCase()} scored ${Math.floor(score)}!`;
+  const text = `${currentUser.toUpperCase()} reached ${highScore}!`;
   if (navigator.share) navigator.share({ title: "My Flappy Score", text });
   else alert(text);
 }
