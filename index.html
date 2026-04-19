@@ -311,10 +311,15 @@ const birdHeight = 24;
 const birdX = boardWidth / 8;
 const birdY = boardHeight / 2;
 
+// GROUND CONFIGURATION
+const groundHeight = 50; // The height of your grass image
+let groundX = 0;
+
 let birdImg = new Image();
 let birdBlinkImg = new Image();
 let topPipeImg = new Image();
 let bottomPipeImg = new Image();
+let groundImg = new Image(); // The new image from your upload
 
 let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
 let pipeArray = [];
@@ -407,6 +412,7 @@ window.onload = function() {
   birdBlinkImg.src = "ClosedEyes.png";
   topPipeImg.src = "toppipe.png";
   bottomPipeImg.src = "bottompipe.png";
+  groundImg.src = "image_a51b79.png"; // MAKE SURE THIS FILENAME MATCHES YOUR LOCAL FILE
   bgm = document.getElementById("bgm");
   sfxWing = document.getElementById("sfx_wing");
   sfxHit = document.getElementById("sfx_hit");
@@ -426,11 +432,17 @@ function update() {
   requestAnimationFrame(update);
   if (gameOver || paused || !currentUser) return;
   context.clearRect(0, 0, board.width, board.height);
+  
   isBlinking = (Date.now() % 4000) < 200;
+
   if (!waitingForStart) {
     velocityY += gravity;
-    bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
+    bird.y = Math.max(bird.y + velocityY, 0); // Allow going up, but not below floor
     velocityX = -2;
+    
+    // GROUND MOVEMENT
+    groundX += velocityX;
+    if (groundX <= -boardWidth) groundX = 0;
   } else {
     bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
     context.fillStyle = "white";
@@ -441,8 +453,15 @@ function update() {
     context.strokeText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
     context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
   }
-  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
-  if (!waitingForStart && bird.y + bird.height >= board.height) handleGameOver();
+
+  // COLLISION WITH GROUND LINE
+  // If the bottom of the bird touches the top of the ground area
+  if (!waitingForStart && bird.y + bird.height >= board.height - groundHeight) {
+      bird.y = board.height - groundHeight - bird.height; // Snap to ground
+      handleGameOver();
+  }
+
+  // DRAW PIPES
   for (let i = 0; i < pipeArray.length; i++) {
     let pipe = pipeArray[i];
     if (!waitingForStart) pipe.x += velocityX;
@@ -453,6 +472,14 @@ function update() {
     if (detectCollision(bird, pipe)) handleGameOver();
   }
   pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
+
+  // DRAW BIRD
+  context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  // DRAW GROUND (Two copies for seamless looping)
+  context.drawImage(groundImg, groundX, board.height - groundHeight, boardWidth, groundHeight);
+  context.drawImage(groundImg, groundX + boardWidth, board.height - groundHeight, boardWidth, groundHeight);
+
   if (!waitingForStart) {
     context.fillStyle = "white";
     context.strokeStyle = "black";
@@ -496,7 +523,7 @@ function handleGameOver() {
 
 function restartGame() {
   document.getElementById("gameOverModal").classList.remove("show");
-  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true;
+  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true; groundX = 0;
 }
 
 async function addToScoreboard() {
@@ -507,13 +534,11 @@ async function addToScoreboard() {
     const doc = await userRef.get();
     const dbHigh = doc.data().highScore || 0;
 
-    // Update the high score on the user profile if needed
     if (currentScoreValue > dbHigh) {
       await userRef.update({ highScore: currentScoreValue });
       highScore = currentScoreValue;
     }
 
-    // CREATE A UNIQUE SCORE ENTRY (This prevents overwriting)
     await db.collection("scores").add({
       name: currentUser,
       score: currentScoreValue,
