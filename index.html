@@ -75,6 +75,9 @@
       background: rgba(0,0,0,0.8);
       z-index: 10;
       padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .tabs button {
@@ -89,6 +92,24 @@
     }
 
     .tabs button.active { background: gold; }
+
+    /* Fix for the Emoji Alignment */
+    #userDisplay {
+      color: gold; 
+      font-size: 8px; 
+      margin-left: 10px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+
+    .user-emoji {
+      font-size: 12px; /* Adjusted to look same height as 8px Press Start 2P */
+      margin-right: 5px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
 
     #board {
       display: block;
@@ -160,7 +181,6 @@
     .pixel-btn:hover { filter: brightness(1.2); }
     #gameOverModal.show { display: block; }
 
-    /* Updated Scoreboard UI */
     #scoreboard {
       display: none;
       color: white;
@@ -217,7 +237,7 @@
   <div class="tabs">
     <button id="gameTab" class="active">Game</button>
     <button id="scoreboardTab">Scoreboard</button>
-    <span id="userDisplay" style="color: gold; font-size: 8px; margin-left: 10px;"></span>
+    <span id="userDisplay"></span>
   </div>
 
   <canvas id="board"></canvas>
@@ -345,7 +365,8 @@ async function processAuth() {
       else {
         currentUser = u;
         highScore = doc.data().highScore || 0;
-        document.getElementById("userDisplay").textContent = "👨" + u.toUpperCase();
+        // Wrapped emoji in span for styling
+        document.getElementById("userDisplay").innerHTML = `<span class="user-emoji">👨</span>${u.toUpperCase()}`;
         document.getElementById("authContainer").style.display = "none";
       }
     }
@@ -455,37 +476,25 @@ function restartGame() {
 async function addToScoreboard() {
   if (!currentUser) return;
   const currentScoreValue = Math.floor(score);
-  
   try {
     const userRef = db.collection("users").doc(currentUser);
-    const scoreRef = db.collection("scores").doc(currentUser); // Use username as the ID
-    
+    const scoreRef = db.collection("scores").doc(currentUser);
     const doc = await userRef.get();
     const dbHigh = doc.data().highScore || 0;
 
-    // Only update if the current score is better than their all-time high
     if (currentScoreValue > dbHigh) {
-      // Update the user's main profile
       await userRef.update({ highScore: currentScoreValue });
-      
-      // Update the leaderboard entry (Overwrites the old one)
       await scoreRef.set({
         name: currentUser,
         score: currentScoreValue,
-        timestamp: Date.now() // Updates the time so they appear in Daily/Weekly
+        timestamp: Date.now()
       });
-      
       highScore = currentScoreValue;
       alert("New Personal Best! 🚀");
     } else {
-      alert("Score saved! (But your best is still " + dbHigh + ")");
-      
-      // OPTIONAL: Update timestamp anyway so they stay on the Daily/Weekly board
-      await scoreRef.update({
-        timestamp: Date.now()
-      });
+      alert("Score saved!");
+      await scoreRef.update({ timestamp: Date.now() });
     }
-    
     switchTab("scoreboard");
   } catch (err) { 
     console.error(err); 
@@ -503,25 +512,19 @@ function changeFilter(type, btn) {
 async function showScoreboard() {
   const scoreList = document.getElementById("scoreList");
   scoreList.innerHTML = "FETCHING...";
-  
   let now = Date.now();
   let startTime = 0;
-  
   if (currentFilter === 'daily') startTime = now - (24 * 60 * 60 * 1000);
   else if (currentFilter === 'weekly') startTime = now - (7 * 24 * 60 * 60 * 1000);
 
   try {
     let query = db.collection("scores").orderBy("score", "desc");
-    
-    // Apply time filter if not Global
     if (currentFilter !== 'global') {
         query = query.where("timestamp", ">=", startTime);
     }
-
     const snap = await query.limit(10).get();
     let html = "";
     let rank = 1;
-    
     if (snap.empty) {
         html = "<p style='text-align:center'>NO SCORES YET</p>";
     } else {
