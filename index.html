@@ -257,7 +257,6 @@
       scoreboard.innerHTML = "Loading...";
 
       try {
-        // Fetch top 50 to allow space for filtering duplicate names
         const snapshot = await db.collection("scores")
           .orderBy("score", "desc")
           .limit(50)
@@ -276,7 +275,6 @@
           const data = doc.data();
           const upperName = data.name.toUpperCase();
 
-          // Only add to display if we haven't seen this name yet and we have less than 10 entries
           if (!seenNames.has(upperName) && rank <= 10) {
             html += `<p style="text-align:left; font-size:10px;">${rank}. ${data.name.substring(0,10)}: ${data.score}</p>`;
             seenNames.add(upperName);
@@ -498,41 +496,41 @@
     }
 
     async function addToScoreboard() {
-      const name = prompt("Enter your name:", playerName)?.trim();
-      if (!name) return;
+      const nameInput = prompt("Enter your name:", playerName)?.trim();
+      if (!nameInput) return;
       
-      playerName = name;
       const playerScore = Math.floor(score);
+      // Create a unique entry key based on the device ID + the Name provided
+      const userKey = `${playerId}_${nameInput}`;
 
       try {
-        const docRef = db.collection("scores").doc(playerId);
+        const docRef = db.collection("scores").doc(userKey);
         const docSnap = await docRef.get();
 
         if (docSnap.exists) {
           const existingScore = docSnap.data().score;
 
-          // ONLY update if current score is higher than the one already in database
           if (playerScore > existingScore) {
             await docRef.update({
               score: playerScore,
-              name: name,
+              name: nameInput,
               timestamp: Date.now()
             });
             alert("New high score updated! 🔥");
           } else {
-            alert(`Your record is already ${existingScore}. Try again!`);
+            alert(`For "${nameInput}", your record is already ${existingScore}.`);
           }
         } else {
           await docRef.set({
             id: playerId,
-            name: name,
+            name: nameInput,
             score: playerScore,
             timestamp: Date.now()
           });
-
-          alert("Score added to leaderboard!");
+          alert(`Score added for ${nameInput}!`);
         }
-
+        
+        playerName = nameInput; // Keep the name for next time
         switchTab("scoreboard");
 
       } catch (err) {
