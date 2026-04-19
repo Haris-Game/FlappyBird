@@ -54,12 +54,6 @@
       border: 10px solid cyan;
     }
 
-    #pauseContainer {
-      display: flex;
-      justify-content: center;
-      margin-top: 10px;
-    }
-
     #pauseBtn {
       position: fixed;
       bottom: 10px;
@@ -171,121 +165,20 @@
   </style>
 </head>
 <body>
-  <div id="authContainer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
-    <h2 id="authTitle" style="margin-bottom: 20px;">FLAPPY LOGIN</h2>
-    
-    <input type="text" id="usernameInput" placeholder="USERNAME" style="padding: 10px; margin-bottom: 10px; font-family: 'Press Start 2P'; font-size: 10px; width: 250px;">
-    <input type="password" id="passwordInput" placeholder="PASSWORD" style="padding: 10px; margin-bottom: 20px; font-family: 'Press Start 2P'; font-size: 10px; width: 250px;">
-    
-    <div id="loginOps" style="display: flex; flex-direction: column; gap: 10px;">
+  <div id="authContainer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+    <h2 id="authTitle" style="margin-bottom: 20px; font-size: 18px;">FLAPPY BIRD</h2>
+    <input type="text" id="usernameInput" placeholder="USERNAME" style="padding: 12px; margin-bottom: 10px; font-family: 'Press Start 2P'; font-size: 10px; width: 260px; border: 4px solid cyan; background: #000; color: white; outline: none;">
+    <input type="password" id="passwordInput" placeholder="PASSWORD" style="padding: 12px; margin-bottom: 20px; font-family: 'Press Start 2P'; font-size: 10px; width: 260px; border: 4px solid cyan; background: #000; color: white; outline: none;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
       <button class="pixel-btn" onclick="handleAuth('login')">LOGIN</button>
-      <button class="pixel-btn" style="background: #444;" onclick="handleAuth('register')">REGISTER NEW ACCOUNT</button>
+      <button class="pixel-btn" style="background: #444;" onclick="handleAuth('register')">REGISTER</button>
     </div>
   </div>
 
   <div class="tabs">
     <button id="gameTab" class="active">Game</button>
     <button id="scoreboardTab">Scoreboard</button>
-    <span id="userDisplay" style="color: gold; font-size: 10px; margin-left: 10px;"></span>
-  </div>
-
-  <canvas id="board"></canvas>
-
-  <div id="gameContainer">
-    <button id="pauseBtn">Pause</button>
-  </div>
-
-  <div id="scoreboard"></div>
-
-  <div id="gameOverModal">
-    <div class="popup">
-      <div class="score-label">SCORE</div>
-      <div class="score-value" id="finalScore">0</div>
-      <div class="score-label">BEST</div>
-      <div class="score-value" id="highScore">0</div>
-    </div>
-    <div class="buttons">
-      <button class="pixel-btn" onclick="restartGame()">RESTART</button>
-      <button class="pixel-btn" onclick="shareScore()">SHARE</button>
-      <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
-    </div>
-  </div>
-
-  <div id="countdown"></div>
-
-  <audio id="bgm" loop src="bgm_mario.mp3"></audio>
-  <audio id="sfx_wing" src="sfx_wing.wav"></audio>
-  <audio id="sfx_hit" src="sfx_hit.wav"></audio>
-  <audio id="sfx_point" src="sfx_point.wav"></audio>
-  <audio id="sfx_swooshing" src="sfx_swooshing.wav"></audio>
-  <audio id="sfx_die" src="sfx_die.wav"></audio>
-
-  <script>
-    // New Auth Logic
-    let currentUser = null;
-
-    async function handleAuth(type) {
-      const u = document.getElementById("usernameInput").value.trim().toLowerCase();
-      const p = document.getElementById("passwordInput").value.trim();
-
-      if (!u || !p) return alert("Fill in both fields!");
-
-      const userRef = db.collection("users").doc(u);
-      const doc = await userRef.get();
-
-      if (type === 'register') {
-        if (doc.exists) return alert("Username already taken!");
-        await userRef.set({ username: u, password: p, highScore: 0 });
-        alert("Registered! Now Login.");
-      } else {
-        if (!doc.exists || doc.data().password !== p) {
-          return alert("Invalid username or password!");
-        }
-        currentUser = u;
-        document.getElementById("userDisplay").textContent = "Player: " + u.toUpperCase();
-        document.getElementById("authContainer").style.display = "none";
-        highScore = doc.data().highScore || 0;
-      }
-    }
-
-    // UPDATED SCOREBOARD LOGIC TO USE LOGGED IN USER
-    async function addToScoreboard() {
-      if (!currentUser) return alert("Please log in first!");
-      
-      const playerScore = Math.floor(score);
-      const userRef = db.collection("users").doc(currentUser);
-      const scoreRef = db.collection("scores").doc(currentUser);
-
-      try {
-        const doc = await userRef.get();
-        const existingBest = doc.data().highScore || 0;
-
-        if (playerScore > existingBest) {
-          // Update User profile
-          await userRef.update({ highScore: playerScore });
-          // Update Public Leaderboard
-          await scoreRef.set({
-            name: currentUser,
-            score: playerScore,
-            timestamp: Date.now()
-          });
-          highScore = playerScore;
-          alert("New Personal Best! 🔥");
-        } else {
-          alert(`Your best is ${existingBest}. Keep trying!`);
-        }
-        switchTab("scoreboard");
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // Standard Game Scripts (Keep your existing update, moveBird, restartGame functions here)
-    // ... [Insert the rest of your original script logic here] ...
-  </script>
-  <div class="tabs">
-    <button id="gameTab" class="active">Game</button>
-    <button id="scoreboardTab">Scoreboard</button>
+    <span id="userDisplay" style="color: gold; font-size: 8px; margin-left: 5px;"></span>
   </div>
 
   <canvas id="board"></canvas>
@@ -331,231 +224,146 @@
       appId: "1:623790359391:web:f62feff43af41642a72cea",
       measurementId: "G-TJR0EHQLQN"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
 
   <script>
+    // Game Variables
     let waitingForStart = true;
     let board, context;
     const boardWidth = 360, boardHeight = 640;
     const birdWidth = 34, birdHeight = 24;
     const birdX = boardWidth / 8, birdY = boardHeight / 2;
-    let birdImg = new Image();
-    let birdBlinkImg = new Image();
+    let birdImg = new Image(), birdBlinkImg = new Image();
     let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
-    let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth, pipeY = 0;
+    let pipeArray = [], pipeWidth = 64, pipeHeight = 512, pipeX = boardWidth;
     let topPipeImg = new Image(), bottomPipeImg = new Image();
     let velocityX = 0, velocityY = 0, gravity = 0.4;
-    let gameOver = false, score = 0, paused = false, countdownActive = false;
-    let muted = false;
-
-    let highScore = localStorage.getItem("flappyHighScore") || 0;
-    let lastBlinkTime = 0;
-    let isBlinking = false;
-    let playerName = prompt("Enter your name:")?.trim() || "Player";
+    let gameOver = false, score = 0, paused = false;
+    let highScore = 0, currentUser = null, isBlinking = false;
     let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
-    let playerId = localStorage.getItem("flappyPlayerId");
 
-    if (!playerId) {
-      playerId = crypto.randomUUID();
-      localStorage.setItem("flappyPlayerId", playerId);
-    }
+    // AUTH LOGIC
+    async function handleAuth(type) {
+      const u = document.getElementById("usernameInput").value.trim().toLowerCase();
+      const p = document.getElementById("passwordInput").value.trim();
+      if (!u || !p) return alert("Enter Username and Password!");
 
-    async function showScoreboard() {
-      const scoreboard = document.getElementById("scoreboard");
-      scoreboard.style.display = "block";
-      scoreboard.innerHTML = "Loading...";
+      const userRef = db.collection("users").doc(u);
+      const doc = await userRef.get();
 
-      try {
-        const snapshot = await db.collection("scores")
-          .orderBy("score", "desc")
-          .limit(10)
-          .get();
-
-        if (snapshot.empty) {
-          scoreboard.innerHTML = "<h3>🏆 Leaderboard</h3><p>No scores yet</p>";
-          return;
-        }
-
-        let html = "<h3>🏆 Leaderboard</h3>";
-        let rank = 1;
-
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          html += `<p style="text-align:left; font-size:10px;">${rank}. ${data.name.substring(0,10)}: ${data.score}</p>`;
-          rank++;
-        });
-
-        scoreboard.innerHTML = html;
-
-      } catch (err) {
-        scoreboard.innerHTML = "Error loading leaderboard";
-        console.error(err);
+      if (type === 'register') {
+        if (doc.exists) return alert("Username already taken!");
+        await userRef.set({ username: u, password: p, highScore: 0 });
+        alert("Account Created! You can now Login.");
+      } else {
+        if (!doc.exists || doc.data().password !== p) return alert("Invalid Login Details!");
+        currentUser = u;
+        highScore = doc.data().highScore || 0;
+        document.getElementById("userDisplay").textContent = "HI " + u.toUpperCase();
+        document.getElementById("authContainer").style.display = "none";
       }
     }
-    
+
     window.onload = () => {
       board = document.getElementById("board");
-      board.width = boardWidth;
-      board.height = boardHeight;
+      board.width = boardWidth; board.height = boardHeight;
       context = board.getContext("2d");
-
-      birdImg.src = "OpenEyes.png";
-      birdBlinkImg.src = "ClosedEyes.png";
-      topPipeImg.src = "toppipe.png";
-      bottomPipeImg.src = "bottompipe.png";
-
+      birdImg.src = "OpenEyes.png"; birdBlinkImg.src = "ClosedEyes.png";
+      topPipeImg.src = "toppipe.png"; bottomPipeImg.src = "bottompipe.png";
       bgm = document.getElementById("bgm");
-      sfxWing = document.getElementById("sfx_wing");
-      sfxHit = document.getElementById("sfx_hit");
-      sfxPoint = document.getElementById("sfx_point");
-      sfxSwooshing = document.getElementById("sfx_swooshing");
+      sfxWing = document.getElementById("sfx_wing"); sfxHit = document.getElementById("sfx_hit");
+      sfxPoint = document.getElementById("sfx_point"); sfxSwooshing = document.getElementById("sfx_swooshing");
       sfxDie = document.getElementById("sfx_die");
-
+      
       document.getElementById("pauseBtn").onclick = togglePause;
       document.getElementById("gameTab").onclick = () => switchTab("game");
       document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
-
       document.addEventListener("keydown", moveBird);
       document.addEventListener("touchstart", moveBird);
-      document.addEventListener("keydown", function(e) {
-        if (gameOver && e.code === "KeyR") restartGame();
-      });
 
       requestAnimationFrame(update);
       setInterval(placePipes, 1500);
     };
 
-    function switchTab(tab) {
-      const gameTab = document.getElementById("gameTab");
-      const scoreTab = document.getElementById("scoreboardTab");
-      const boardEl = document.getElementById("board");
-      const scoreboard = document.getElementById("scoreboard");
-      const pauseBtn = document.getElementById("pauseBtn");
-
-      gameTab.classList.remove("active");
-      scoreTab.classList.remove("active");
-
-      if (tab === "game") {
-        gameTab.classList.add("active");
-        boardEl.style.display = "block";
-        scoreboard.style.display = "none";
-        pauseBtn.style.display = "block";
-      } else {
-        scoreTab.classList.add("active");
-        boardEl.style.display = "none";
-        pauseBtn.style.display = "none";
-        showScoreboard();
-      }
-    }
-
-    function togglePause() {
-      if (gameOver || waitingForStart || countdownActive) return;
-
-      if (!paused) {
-        paused = true;
-        document.getElementById("pauseBtn").textContent = "Play";
-      } else {
-        countdownActive = true;
-        document.getElementById("pauseBtn").textContent = "Pause";
-        let countdown = 2;
-        const countdownDiv = document.getElementById("countdown");
-        countdownDiv.style.display = "block";
-        countdownDiv.textContent = countdown;
-
-        const interval = setInterval(() => {
-          countdown--;
-          countdownDiv.textContent = countdown;
-          countdownDiv.style.animation = "none";
-          void countdownDiv.offsetWidth; 
-          countdownDiv.style.animation = "scaleFade 1s ease forwards";
-          if (countdown <= 0) {
-            clearInterval(interval);
-            countdownDiv.style.display = "none";
-            countdownActive = false;
-            paused = false;
-          }
-        }, 1000);
-      }
-    }
-    
-
     function update() {
       requestAnimationFrame(update);
-      if (gameOver || paused) return;
-
+      if (gameOver || paused || !currentUser) return;
       context.clearRect(0, 0, board.width, board.height);
-      let now = Date.now();
-
-      const blinkCycle = 4000;
-      const blinkDuration = 200;
-
-      let cycleTime = now % blinkCycle;
-      isBlinking = cycleTime < blinkDuration;
+      
+      isBlinking = (Date.now() % 4000) < 200;
       if (!waitingForStart) {
         velocityY += gravity;
         bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
         velocityX = -2;
       } else {
-        let floatAmplitude = 10;
-        let floatFrequency = 0.005;
-        bird.y = birdY + floatAmplitude * Math.sin(Date.now() * floatFrequency);
-      }
-      let currentBirdImg = isBlinking ? birdBlinkImg : birdImg;
-      context.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
-      if (!waitingForStart && bird.y + bird.height >= board.height) {
-        handleGameOver();
-        return;
+        bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
       }
 
-      for (let i = 0; i < pipeArray.length; i++) {
-        let pipe = pipeArray[i];
+      context.drawImage(isBlinking ? birdBlinkImg : birdImg, bird.x, bird.y, bird.width, bird.height);
+      if (!waitingForStart && bird.y + bird.height >= board.height) return handleGameOver();
+
+      for (let pipe of pipeArray) {
         if (!waitingForStart) pipe.x += velocityX;
         context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
-
         if (!pipe.passed && bird.x > pipe.x + pipe.width) {
-          score += 0.5;
-          pipe.passed = true;
-          sfxPoint.play();
+          score += 0.5; pipe.passed = true; sfxPoint.play();
         }
-
         if (detectCollision(bird, pipe)) return handleGameOver();
       }
-
       pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
+      context.fillStyle = "white"; context.font = "55px 'Press Start 2P'";
+      context.fillText(Math.floor(score), board.width/2 - 25, board.height/4);
+    }
 
-      context.fillStyle = "white";
-      context.font = "55px 'Press Start 2P', monospace";
-      context.fillText(Math.floor(score), board.width / 2 - context.measureText(Math.floor(score)).width / 2, board.height / 4);
+    async function addToScoreboard() {
+      if (!currentUser) return;
+      const finalScore = Math.floor(score);
+      const userRef = db.collection("users").doc(currentUser);
+      const scoreRef = db.collection("scores").doc(currentUser);
+
+      try {
+        if (finalScore > highScore) {
+          await userRef.update({ highScore: finalScore });
+          await scoreRef.set({ name: currentUser, score: finalScore, timestamp: Date.now() });
+          highScore = finalScore;
+          alert("New Personal Record! 🔥");
+        } else {
+          alert(`Current Personal Best is ${highScore}.`);
+        }
+        switchTab("scoreboard");
+      } catch (err) { console.error(err); }
+    }
+
+    async function showScoreboard() {
+      const sb = document.getElementById("scoreboard");
+      sb.style.display = "block"; sb.innerHTML = "Loading...";
+      try {
+        const snap = await db.collection("scores").orderBy("score", "desc").limit(10).get();
+        let html = "<h3>🏆 TOP 10</h3>";
+        let rank = 1;
+        snap.forEach(doc => {
+          html += `<p style="font-size:10px; text-align:left;">${rank++}. ${doc.data().name}: ${doc.data().score}</p>`;
+        });
+        sb.innerHTML = html || "<h3>🏆 TOP 10</h3><p>No scores yet</p>";
+      } catch (err) { sb.innerHTML = "Error loading."; }
     }
 
     function placePipes() {
       if (gameOver || paused || waitingForStart) return;
-      let randomY = pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
-      let opening = board.height / 4;
-
+      let randomY = -pipeHeight/4 - Math.random() * (pipeHeight/2);
       pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
-      pipeArray.push({ img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening, width: pipeWidth, height: pipeHeight, passed: false });
+      pipeArray.push({ img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + 160, width: pipeWidth, height: pipeHeight, passed: false });
     }
 
     function moveBird(e) {
-      if (gameOver || paused || countdownActive) return;
-      if (e.type === "keydown" && !(e.code === "Space" || e.code === "ArrowUp")) return;
-
+      if (gameOver || paused || !currentUser) return;
+      if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
       if (waitingForStart) {
-        waitingForStart = false;
-        if (!muted) {
-          bgm.currentTime = 0;
-          bgm.play();
-          sfxSwooshing.play();
-        }
+        waitingForStart = false; bgm.play(); sfxSwooshing.play();
       }
-
-      velocityY = -6;
-      sfxWing.currentTime = 0;
-      sfxWing.play();
+      velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
     }
 
     function detectCollision(a, b) {
@@ -564,83 +372,37 @@
 
     function handleGameOver() {
       if (gameOver) return;
-      gameOver = true;
-      sfxHit.play();
-      sfxDie.play();
-      bgm.pause();
-      
-      let currentScore = Math.floor(score);
-      document.getElementById("finalScore").textContent = currentScore;
-
-      if (currentScore > highScore) {
-        highScore = currentScore;
-        localStorage.setItem("flappyHighScore", highScore);
-      }
-
+      gameOver = true; sfxHit.play(); sfxDie.play(); bgm.pause();
+      document.getElementById("finalScore").textContent = Math.floor(score);
       document.getElementById("highScore").textContent = Math.floor(highScore);
       document.getElementById("gameOverModal").classList.add("show");
     }
 
     function restartGame() {
       document.getElementById("gameOverModal").classList.remove("show");
-      bird.y = birdY;
-      velocityY = 0;
-      pipeArray = [];
-      score = 0;
-      gameOver = false;
-      waitingForStart = true;
-      velocityX = 0;
+      bird.y = birdY; velocityY = 0; pipeArray = []; score = 0;
+      gameOver = false; waitingForStart = true;
+    }
+
+    function switchTab(tab) {
+      document.getElementById("gameTab").classList.toggle("active", tab === "game");
+      document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
+      document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
+      document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
+      document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
+      if (tab === "scoreboard") showScoreboard();
+    }
+
+    function togglePause() {
+      if (gameOver || waitingForStart) return;
+      paused = !paused;
+      document.getElementById("pauseBtn").textContent = paused ? "Play" : "Pause";
     }
 
     function shareScore() {
-      const text = `${playerName} scored ${Math.floor(score)} in Flappy Bird! Can you beat that?`;
-      if (navigator.share) {
-        navigator.share({ title: "Flappy Bird Score", text });
-      } else {
-        alert("Share API not supported. Copy this message:\n\n" + text);
-      }
-    }
-
-    async function addToScoreboard() {
-      const name = prompt("Enter your name:", playerName)?.trim();
-      if (!name) return;
-
-      const playerScore = Math.floor(score);
-      // We use the NAME as the ID now, so every unique name gets its own spot.
-      const nameId = name.toLowerCase(); 
-
-      try {
-        const docRef = db.collection("scores").doc(nameId);
-        const docSnap = await docRef.get();
-
-        if (docSnap.exists) {
-          const existingScore = docSnap.data().score;
-
-          if (playerScore > existingScore) {
-            await docRef.update({
-              score: playerScore,
-              name: name, // keeps original casing
-              timestamp: Date.now()
-            });
-            alert(`High score updated for ${name}! 🔥`);
-          } else {
-            alert(`The name "${name}" already has a high score of ${existingScore}. Try a different name or beat the score!`);
-          }
-        } else {
-          await docRef.set({
-            name: name,
-            score: playerScore,
-            timestamp: Date.now()
-          });
-          alert(`Score added for ${name}!`);
-        }
-
-        switchTab("scoreboard");
-
-      } catch (err) {
-        alert("Error saving score: " + err.message);
-        console.error(err);
-      }
+      const text = `${currentUser} scored ${Math.floor(score)} in Flappy Bird!`;
+      if (navigator.share) navigator.share({ title: "Score", text });
+      else alert(text);
     }
   </script>
 </body>
