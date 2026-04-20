@@ -19,6 +19,30 @@
       color: white;
     }
 
+    /* Custom Aesthetic Notification */
+    #customAlert {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #222;
+      border: 4px solid #ff6347;
+      padding: 15px 25px;
+      color: white;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      z-index: 3000;
+      transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 8px 0 #000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 280px;
+      pointer-events: none;
+    }
+
+    #customAlert.show { top: 20px; }
+
     #authContainer {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -251,6 +275,11 @@
 </head>
 <body>
 
+  <div id="customAlert">
+    <span id="alertIcon">🚫</span>
+    <span id="alertMessage">LOCKED!</span>
+  </div>
+
   <div id="authContainer">
     <div class="auth-card">
       <h2 id="authTitle">FLAPPY LOGIN</h2>
@@ -369,7 +398,7 @@ let currentFilter = 'global';
 let waitingForStart = true;
 let board, context;
 let authMode = 'login';
-let selectedSkin = 'default'; // Player's manual choice
+let selectedSkin = 'default'; 
 
 const boardWidth = 360;
 const boardHeight = 640;
@@ -400,6 +429,28 @@ let resumeTimer = 0;
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
+// Fancy Aesthetic Alert Function
+function fancyAlert(message, type = 'error') {
+    const alertBox = document.getElementById("customAlert");
+    const alertMsg = document.getElementById("alertMessage");
+    const alertIcon = document.getElementById("alertIcon");
+
+    alertMsg.textContent = message;
+    
+    if (type === 'success') {
+        alertBox.style.borderColor = "gold";
+        alertIcon.textContent = "⭐";
+    } else {
+        alertBox.style.borderColor = "#ff6347";
+        alertIcon.textContent = "🚫";
+    }
+
+    alertBox.classList.add("show");
+    setTimeout(() => {
+        alertBox.classList.remove("show");
+    }, 2500);
+}
+
 function updateBirdSkins(blinking) {
     let target = "";
     if (selectedSkin === 'legendary') target = blinking ? "legClosed" : "legOpen";
@@ -414,22 +465,19 @@ function selectSkin(skinName, requiredScore) {
     if (highScore >= requiredScore) {
         selectedSkin = skinName;
         refreshSkinUI();
-        alert(skinName.toUpperCase() + " Bird Selected!");
+        fancyAlert(skinName.toUpperCase() + " SELECTED!", 'success');
     } else {
-        alert("Locked! Reach " + requiredScore + " High Score first.");
+        fancyAlert("REACH " + requiredScore + " SCORE!", 'error');
     }
 }
 
 function refreshSkinUI() {
-    // Remove selected class from all
     document.querySelectorAll('.skin-item').forEach(el => el.classList.remove('selected', 'locked'));
     
-    // Lock logic visual
     if (highScore < 200) document.getElementById('item200').classList.add('locked');
     if (highScore < 400) document.getElementById('item400').classList.add('locked');
     if (highScore < 800) document.getElementById('item800').classList.add('locked');
 
-    // Select logic visual
     let activeId = 'item0';
     if (selectedSkin === 'blue') activeId = 'item200';
     if (selectedSkin === 'red') activeId = 'item400';
