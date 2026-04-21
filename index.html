@@ -730,23 +730,40 @@ function restartGame() {
 
 async function addToScoreboard() {
   if (!currentUser) return;
-  const currentScoreValue = Math.floor(score);
+  const currentSessionScore = Math.floor(score);
+  
   try {
     const userRef = db.collection("users").doc(currentUser);
-    if (currentScoreValue > highScore) {
-        highScore = currentScoreValue; 
-        await userRef.update({ highScore: currentScoreValue });
+    
+    // Check if we actually beat the personal high score
+    if (currentSessionScore > highScore) {
+        highScore = currentSessionScore; 
+        await userRef.update({ highScore: currentSessionScore });
     }
 
+    // Always use the highest recorded score for the Global/Weekly/Daily entry 
+    // to prevent overwriting a 190 with a 140.
+    const scoreToSubmit = Math.max(currentSessionScore, highScore);
+
     const scoreRef = db.collection("scores").doc(currentUser);
+    
+    // Fetch existing score in 'scores' to check if we already have this exact high score listed
+    const existingDoc = await scoreRef.get();
+    if (existingDoc.exists && existingDoc.data().score >= scoreToSubmit) {
+       // If the leaderboard already has a score equal or higher, just switch to the tab
+       fancyAlert("SCORE ALREADY ON BOARD!", "success");
+       switchTab("scoreboard");
+       return;
+    }
+
     await scoreRef.set({
       name: currentUser,
-      score: highScore, 
+      score: scoreToSubmit, 
       gender: userGender,
       timestamp: Date.now()
     }, { merge: true });
 
-    alert("Progress saved permanently!");
+    fancyAlert("PROGRESS SAVED!", "success");
     switchTab("scoreboard");
   } catch (err) { alert("Error saving progress."); }
 }
