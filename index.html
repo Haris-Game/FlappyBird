@@ -712,11 +712,11 @@ function detectCollision(a, b) {
 }
 
 function handleGameOver() {
- // if (gameOver || isDeadAnimating) return;
+  if (gameOver || isDeadAnimating) return;
   
- // isDeadAnimating = true;
- // deathStartTime = Date.now();
- // deathRotation = 0;
+  isDeadAnimating = true;
+  deathStartTime = Date.now();
+ deathRotation = 0;
   
   sfxHit.play(); sfxDie.play(); bgm.pause();
 }
