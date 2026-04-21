@@ -422,6 +422,9 @@ let velocityY = 0;
 let gravity = 0.4;
 
 let gameOver = false;
+let isDeadAnimating = false;
+let deathRotation = 0;
+let deathStartTime = 0;
 let score = 0;
 let paused = false;
 let isBlinking = false;
@@ -583,6 +586,32 @@ function update() {
 
   context.clearRect(0, 0, board.width, board.height);
   isBlinking = (Date.now() % 4000) < 200;
+
+  // Animation logic when dying
+  if (isDeadAnimating) {
+    let elapsed = Date.now() - deathStartTime;
+    
+    // Static pipes
+    for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
+
+    // Death Tumble
+    context.save();
+    context.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
+    deathRotation += 0.2; 
+    context.rotate(deathRotation);
+    
+    bird.y = Math.min(bird.y + 8, board.height - bird.height); 
+    
+    context.drawImage(birdImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
+    context.restore();
+
+    if (elapsed > 3000) {
+      isDeadAnimating = false;
+      showGameOverUI();
+    }
+    return; 
+  }
+
   updateBirdSkins(isBlinking);
 
   document.getElementById("skin0").src = isBlinking ? preloadedImages["defaultClosed"].src : preloadedImages["defaultOpen"].src;
@@ -649,8 +678,7 @@ function update() {
 }
 
 function placePipes() {
-  // FIX: Shield condition to stop pipes bunching up
-  if (gameOver || paused || waitingForStart || resumeTimer > 0) return;
+  if (gameOver || paused || waitingForStart || resumeTimer > 0 || isDeadAnimating) return;
 
   let randomY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
   let opening = 160;
@@ -659,7 +687,7 @@ function placePipes() {
 }
 
 function moveBird(e) {
-  if (gameOver || !currentUser || resumeTimer > 0) return;
+  if (gameOver || !currentUser || resumeTimer > 0 || isDeadAnimating) return;
   if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
   
   if (paused) {
@@ -678,9 +706,17 @@ function detectCollision(a, b) {
 }
 
 function handleGameOver() {
-  if (gameOver) return;
-  gameOver = true;
+  if (gameOver || isDeadAnimating) return;
+  
+  isDeadAnimating = true;
+  deathStartTime = Date.now();
+  deathRotation = 0;
+  
   sfxHit.play(); sfxDie.play(); bgm.pause();
+}
+
+function showGameOverUI() {
+  gameOver = true;
   let currentSessionScore = Math.floor(score);
   document.getElementById("finalScore").textContent = currentSessionScore;
   document.getElementById("highScoreDisp").textContent = Math.max(currentSessionScore, highScore);
@@ -689,7 +725,7 @@ function handleGameOver() {
 
 function restartGame() {
   document.getElementById("gameOverModal").classList.remove("show");
-  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; waitingForStart = true; resumeTimer = 0;
+  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; isDeadAnimating = false; waitingForStart = true; resumeTimer = 0;
 }
 
 async function addToScoreboard() {
@@ -762,7 +798,7 @@ function switchTab(tab) {
 }
 
 function togglePause() {
-  if (gameOver || waitingForStart || resumeTimer > 0) return;
+  if (gameOver || waitingForStart || resumeTimer > 0 || isDeadAnimating) return;
   if (!paused) {
       paused = true;
       document.getElementById("pauseBtn").textContent = "PLAY";
