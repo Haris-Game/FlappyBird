@@ -429,7 +429,6 @@ let resumeTimer = 0;
 
 let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
 
-// Fancy Aesthetic Alert Function
 function fancyAlert(message, type = 'error') {
     const alertBox = document.getElementById("customAlert");
     const alertMsg = document.getElementById("alertMessage");
@@ -565,7 +564,14 @@ window.onload = function() {
   document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
   document.getElementById("skinsTab").onclick = () => switchTab("skins");
 
-  document.addEventListener("keydown", moveBird);
+  document.addEventListener("keydown", function(e) {
+    if (e.code === "KeyM") {
+        togglePause();
+    } else {
+        moveBird(e);
+    }
+  });
+
   document.addEventListener("touchstart", moveBird);
   requestAnimationFrame(update);
   setInterval(placePipes, 1500);
@@ -584,16 +590,28 @@ function update() {
   document.getElementById("skin400").src = isBlinking ? preloadedImages["redClosed"].src : preloadedImages["redOpen"].src;
   document.getElementById("skin800").src = isBlinking ? preloadedImages["legClosed"].src : preloadedImages["legOpen"].src;
 
-  if (resumeTimer > 0) {
+  // Show static scene if countdown is active or if waiting for unpause
+  if (resumeTimer > 0 || (paused && !gameOver)) {
       context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
       for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
-      context.fillStyle = "gold"; context.strokeStyle = "black"; context.lineWidth = 6; context.font = "60px 'Press Start 2P'"; context.textAlign = "center";
-      context.strokeText(resumeTimer, board.width / 2, board.height / 2);
-      context.fillText(resumeTimer, board.width / 2, board.height / 2);
+      
+      context.fillStyle = "gold"; context.strokeStyle = "black"; context.lineWidth = 6; context.textAlign = "center";
+      
+      if (resumeTimer > 0) {
+        context.font = "60px 'Press Start 2P'";
+        context.strokeText(resumeTimer, board.width / 2, board.height / 2);
+        context.fillText(resumeTimer, board.width / 2, board.height / 2);
+      } else {
+        // This triggers after countdown finishes while 'paused' is still true
+        context.font = "16px 'Press Start 2P'";
+        context.fillStyle = "white";
+        context.strokeText("TAP / SPACE TO CONTINUE", board.width / 2, board.height / 2 + 100);
+        context.fillText("TAP / SPACE TO CONTINUE", board.width / 2, board.height / 2 + 100);
+      }
       return; 
   }
 
-  if (gameOver || paused) {
+  if (gameOver) {
       context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
       for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
       return;
@@ -641,8 +659,17 @@ function placePipes() {
 }
 
 function moveBird(e) {
-  if (gameOver || paused || !currentUser || resumeTimer > 0) return;
+  if (gameOver || !currentUser || resumeTimer > 0) return;
   if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
+  
+  // Logic to unpause after countdown
+  if (paused) {
+      paused = false;
+      bgm.play();
+      velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
+      return;
+  }
+
   if (waitingForStart) { waitingForStart = false; bgm.play(); sfxSwooshing.play(); }
   velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
 }
@@ -748,8 +775,8 @@ function togglePause() {
           resumeTimer--;
           if (resumeTimer <= 0) {
               clearInterval(countdown);
-              paused = false;
-              bgm.play();
+              // After countdown finishes, we remain in 'paused' mode 
+              // until user taps or presses space (handled in update and moveBird)
           }
       }, 1000);
   }
