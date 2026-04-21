@@ -513,21 +513,21 @@ async function processAuth() {
   const p = document.getElementById("passwordInput").value.trim();
   const g = document.getElementById("genderInput").value;
   
-  if (!u || !p) { alert("Fill all fields!"); return; }
+  if (!u || !p) { fancyAlert("FILL ALL FIELDS!", 'error'); return; }
   
   try {
     const userRef = db.collection("users").doc(u);
     const doc = await userRef.get();
     
     if (authMode === 'register') {
-      if (doc.exists) { alert("Username exists!"); } 
+      if (doc.exists) { fancyAlert("USERNAME EXISTS!", 'error'); } 
       else {
         await userRef.set({ username: u, password: p, gender: g, highScore: 0, timestamp: Date.now() });
-        alert("Success! Now Login.");
+        fancyAlert("SUCCESS! NOW LOGIN.", 'success');
         toggleAuthMode();
       }
     } else {
-      if (!doc.exists || doc.data().password !== p) { alert("Wrong credentials!"); } 
+      if (!doc.exists || doc.data().password !== p) { fancyAlert("WRONG CREDENTIALS!", 'error'); } 
       else {
         currentUser = u;
         const userData = doc.data();
@@ -542,9 +542,10 @@ async function processAuth() {
         displayElem.innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
         displayElem.style.visibility = "visible";
         document.getElementById("authContainer").style.display = "none";
+        fancyAlert("WELCOME " + u.toUpperCase(), 'success');
       }
     }
-  } catch (err) { alert(err.message); }
+  } catch (err) { fancyAlert("AUTH ERROR!", 'error'); }
 }
 
 window.onload = function() {
@@ -646,7 +647,13 @@ function update() {
 
   if (!waitingForStart) {
     velocityY += gravity;
-    bird.y = Math.min(Math.max(bird.y + velocityY, 0), board.height - bird.height);
+    // Ground collision: If bird reaches the bottom area, handle game over
+    if (bird.y + bird.height >= board.height - 20) {
+        bird.y = board.height - bird.height - 20;
+        handleGameOver();
+    } else {
+        bird.y = Math.max(bird.y + velocityY, 0);
+    }
     velocityX = -2;
   } else {
     bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
@@ -656,7 +663,6 @@ function update() {
   }
   
   context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
-  if (!waitingForStart && bird.y + bird.height >= board.height) handleGameOver();
   
   for (let i = 0; i < pipeArray.length; i++) {
     let pipe = pipeArray[i];
@@ -730,24 +736,20 @@ function restartGame() {
 
 async function addToScoreboard() {
   if (!currentUser) return;
-  const currentSessionScore = Math.floor(score); // This is what you JUST scored (e.g., 191)
+  const currentSessionScore = Math.floor(score); 
   
   try {
     const userRef = db.collection("users").doc(currentUser);
     const scoreRef = db.collection("scores").doc(currentUser);
     
-    // 1. Update Personal High Score ONLY if you beat your record
     if (currentSessionScore > highScore) {
         highScore = currentSessionScore; 
         await userRef.update({ highScore: currentSessionScore });
     }
 
-    // 2. Check if this specific score (191) is already on the board
     const existingDoc = await scoreRef.get();
     if (existingDoc.exists) {
         const data = existingDoc.data();
-        // If your current session is lower than or equal to what's already recorded, 
-        // don't overwrite it (prevents 434 being replaced by 191, or 191 being spammed)
         if (data.score >= currentSessionScore) {
             fancyAlert("SCORE ALREADY RECORDED!", "success");
             switchTab("scoreboard");
@@ -755,19 +757,18 @@ async function addToScoreboard() {
         }
     }
 
-    // 3. Save the new score (the 191) to the leaderboard
     await scoreRef.set({
       name: currentUser,
       score: currentSessionScore, 
       gender: userGender,
-      timestamp: Date.now() // This ensures it shows up in Daily/Weekly filters
+      timestamp: Date.now() 
     }, { merge: true });
 
     fancyAlert("SCORE SAVED!", "success");
     switchTab("scoreboard");
   } catch (err) { 
     console.error(err);
-    alert("Error saving progress."); 
+    fancyAlert("ERROR SAVING SCORE!", "error"); 
   }
 }
 
@@ -836,9 +837,9 @@ function togglePause() {
 }
 
 function shareScore() {
-  const text = `${currentUser.toUpperCase()} reached ${highScore}!`;
+  const text = `${currentUser.toUpperCase()} reached ${Math.floor(score)}!`;
   if (navigator.share) navigator.share({ title: "My Flappy Score", text });
-  else alert(text);
+  else fancyAlert("SCORE: " + Math.floor(score), 'success');
 }
   </script>
 </body>
