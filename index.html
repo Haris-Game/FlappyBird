@@ -730,42 +730,45 @@ function restartGame() {
 
 async function addToScoreboard() {
   if (!currentUser) return;
-  const currentSessionScore = Math.floor(score);
+  const currentSessionScore = Math.floor(score); // This is what you JUST scored (e.g., 191)
   
   try {
     const userRef = db.collection("users").doc(currentUser);
+    const scoreRef = db.collection("scores").doc(currentUser);
     
-    // Check if we actually beat the personal high score
+    // 1. Update Personal High Score ONLY if you beat your record
     if (currentSessionScore > highScore) {
         highScore = currentSessionScore; 
         await userRef.update({ highScore: currentSessionScore });
     }
 
-    // Always use the highest recorded score for the Global/Weekly/Daily entry 
-    // to prevent overwriting a 190 with a 140.
-    const scoreToSubmit = Math.max(currentSessionScore, highScore);
-
-    const scoreRef = db.collection("scores").doc(currentUser);
-    
-    // Fetch existing score in 'scores' to check if we already have this exact high score listed
+    // 2. Check if this specific score (191) is already on the board
     const existingDoc = await scoreRef.get();
-    if (existingDoc.exists && existingDoc.data().score >= scoreToSubmit) {
-       // If the leaderboard already has a score equal or higher, just switch to the tab
-       fancyAlert("SCORE ALREADY ON BOARD!", "success");
-       switchTab("scoreboard");
-       return;
+    if (existingDoc.exists) {
+        const data = existingDoc.data();
+        // If your current session is lower than or equal to what's already recorded, 
+        // don't overwrite it (prevents 434 being replaced by 191, or 191 being spammed)
+        if (data.score >= currentSessionScore) {
+            fancyAlert("SCORE ALREADY RECORDED!", "success");
+            switchTab("scoreboard");
+            return;
+        }
     }
 
+    // 3. Save the new score (the 191) to the leaderboard
     await scoreRef.set({
       name: currentUser,
-      score: scoreToSubmit, 
+      score: currentSessionScore, 
       gender: userGender,
-      timestamp: Date.now()
+      timestamp: Date.now() // This ensures it shows up in Daily/Weekly filters
     }, { merge: true });
 
-    fancyAlert("PROGRESS SAVED!", "success");
+    fancyAlert("SCORE SAVED!", "success");
     switchTab("scoreboard");
-  } catch (err) { alert("Error saving progress."); }
+  } catch (err) { 
+    console.error(err);
+    alert("Error saving progress."); 
+  }
 }
 
 function changeFilter(type, btn) {
