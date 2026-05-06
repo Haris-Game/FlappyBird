@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Flappy Bird | Fixed Auth</title>
+  <title>Flappy Bird | Made by Haris</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="OpenEyes.png">
   <style>
     body {
       font-family: 'Press Start 2P', monospace;
@@ -18,7 +19,29 @@
       color: white;
     }
 
-    /* Auth Container */
+    #customAlert {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #222;
+      border: 4px solid #ff6347;
+      padding: 15px 25px;
+      color: white;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      z-index: 3000;
+      transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 8px 0 #000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 280px;
+      pointer-events: none;
+    }
+
+    #customAlert.show { top: 20px; }
+
     #authContainer {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -39,6 +62,13 @@
       width: 320px;
     }
 
+    .auth-card h2 {
+      font-size: 18px;
+      margin-bottom: 30px;
+      color: cyan;
+      text-shadow: 2px 2px black;
+    }
+
     .auth-card input, .auth-card select {
       padding: 12px;
       margin-bottom: 15px;
@@ -49,6 +79,119 @@
       border: 2px solid #333;
       background: #000;
       color: white;
+      outline: none;
+    }
+
+    .toggle-link {
+      margin-top: 20px;
+      font-size: 8px;
+      cursor: pointer;
+      color: #aaa;
+      text-decoration: underline;
+    }
+
+    .toggle-link:hover { color: gold; }
+
+    .tabs {
+      position: fixed;
+      top: 0; width: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 10;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tabs button {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      margin: 0 5px;
+      padding: 8px 12px;
+      background: cyan;
+      border: 2px solid black;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .tabs button.active { background: gold; }
+
+    #userDisplay {
+      position: fixed;
+      bottom: 10px;
+      left: 20px;
+      color: gold; 
+      font-size: 8px; 
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 12px;
+      border-radius: 10px;
+      border: 2px solid cyan;
+      visibility: hidden;
+    }
+
+    .user-emoji {
+      font-size: 14px; 
+      line-height: 0;
+      display: inline-block;
+    }
+
+    #board {
+      display: block;
+      margin: 60px auto 0 auto;
+      background: url("flappybirdbg.png") no-repeat center/cover;
+      position: relative;
+      z-index: 1;
+      max-width: 100%;
+      height: auto;
+      border-radius: 20px;
+      border: 10px solid cyan;
+    }
+
+    #pauseBtn {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      padding: 8px 25px;
+      background: cyan;
+      border: 2px solid black;
+      font-family: 'Press Start 2P', monospace;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    #gameOverModal {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 999;
+      text-align: center;
+    }
+
+    .popup {
+      display: inline-block;
+      background-color: #f5deb3;
+      border: 4px solid #000;
+      padding: 20px;
+      box-shadow: 6px 6px 0 #333;
+      margin-bottom: 20px;
+    }
+
+    .score-label { color: #ff6347; font-size: 10px; margin: 10px 0 5px; }
+    .score-value { color: #000; font-size: 24px; margin-bottom: 5px; }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
     }
 
     .pixel-btn {
@@ -60,54 +203,81 @@
       padding: 12px;
       cursor: pointer;
       box-shadow: 3px 3px 0 #000;
-      width: 100%;
+      width: 260px;
     }
 
-    .toggle-link {
-      margin-top: 20px;
-      font-size: 8px;
-      cursor: pointer;
-      color: #aaa;
-      text-decoration: underline;
-    }
+    .pixel-btn:hover { filter: brightness(1.2); }
+    #gameOverModal.show { display: block; }
 
-    /* Game UI */
-    #board {
-      display: block;
-      margin: 60px auto 0 auto;
-      background: url("flappybirdbg.png") no-repeat center/cover;
-      border: 10px solid cyan;
-      border-radius: 20px;
-    }
-
-    #userDisplay {
-      position: fixed;
-      bottom: 10px;
-      left: 20px;
-      color: gold; 
-      font-size: 10px; 
-      z-index: 10;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 12px;
-      border-radius: 10px;
-      border: 2px solid cyan;
+    #scoreboard, #skinsTabContent {
       display: none;
+      color: white;
+      font-family: 'Press Start 2P', monospace;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 4px solid cyan;
+      border-radius: 10px;
+      width: 340px;
+      margin: 80px auto 0;
+      line-height: 1.6;
     }
 
-    .tabs { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.8); z-index: 10; padding: 10px; display: flex; justify-content: center; }
-    .tabs button { font-family: 'Press Start 2P'; font-size: 8px; margin: 0 5px; padding: 8px; cursor: pointer; background: cyan; }
-    
-    #customAlert {
-      position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-      background: #222; border: 4px solid #ff6347; padding: 15px; color: white;
-      font-size: 10px; z-index: 3000; transition: top 0.5s;
+    .skin-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
     }
-    #customAlert.show { top: 20px; }
+
+    .skin-item:hover { background: rgba(255, 255, 255, 0.1); }
+    
+    .skin-item.selected {
+      border: 2px solid gold;
+      background: rgba(255, 215, 0, 0.2);
+    }
+
+    .skin-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .skin-img { width: 34px; height: 24px; image-rendering: pixelated; }
+
+    .sb-filters {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+
+    .filter-btn {
+      font-family: 'Press Start 2P';
+      font-size: 7px;
+      padding: 5px;
+      background: #333;
+      color: white;
+      border: 1px solid cyan;
+      cursor: pointer;
+    }
+
+    .filter-btn.active { background: cyan; color: black; }
+    
+    #scoreList {
+        text-align: left;
+        font-size: 9px;
+        margin-top: 10px;
+    }
   </style>
 </head>
 <body>
 
-  <div id="customAlert"><span id="alertMessage"></span></div>
+  <div id="customAlert">
+    <span id="alertIcon">🚫</span>
+    <span id="alertMessage">LOCKED!</span>
+  </div>
 
   <div id="authContainer">
     <div class="auth-card">
@@ -125,137 +295,556 @@
     </div>
   </div>
 
-  <div id="userDisplay"></div>
-
   <div class="tabs">
-    <button onclick="location.reload()">Game</button>
-    <button>Shop</button>
+    <button id="gameTab" class="active">Game</button>
+    <button id="scoreboardTab">Scoreboard</button>
+    <button id="skinsTab">Skins</button>
   </div>
+
+  <div id="userDisplay"></div>
 
   <canvas id="board"></canvas>
 
-  <!-- Firebase Legacy SDKs -->
+  <div id="gameContainer">
+    <button id="pauseBtn">Pause</button>
+  </div>
+
+  <div id="scoreboard">
+    <h3 style="font-size: 14px; color: gold;">LEADERBOARD</h3>
+    <div class="sb-filters">
+        <button class="filter-btn active" onclick="changeFilter('global', this)">GLOBAL</button>
+        <button class="filter-btn" onclick="changeFilter('weekly', this)">WEEKLY</button>
+        <button class="filter-btn" onclick="changeFilter('daily', this)">DAILY</button>
+    </div>
+    <div id="scoreList">Loading...</div>
+  </div>
+
+  <div id="skinsTabContent">
+    <h3 style="font-size: 14px; color: gold;">SELECT SKIN</h3>
+    <div class="skin-item" id="item0" onclick="selectSkin('default', 0)">
+      <img src="OpenEyes.png" class="skin-img" id="skin0">
+      <span style="font-size: 8px;">DEFAULT (0+)</span>
+    </div>
+    <div class="skin-item" id="item200" onclick="selectSkin('blue', 200)">
+      <img src="BlueOpenEyes.png" class="skin-img" id="skin200">
+      <span style="font-size: 8px;">BLUE (200+)</span>
+    </div>
+    <div class="skin-item" id="item400" onclick="selectSkin('red', 400)">
+      <img src="RedOpenEyes.png" class="skin-img" id="skin400">
+      <span style="font-size: 8px;">RED (400+)</span>
+    </div>
+    <div class="skin-item" id="item800" onclick="selectSkin('legendary', 800)">
+      <img src="LegendaryOpenEyes.png" class="skin-img" id="skin800">
+      <span style="font-size: 8px;">MYTHIC (800+)</span>
+    </div>
+  </div>
+
+  <div id="gameOverModal">
+    <div class="popup">
+      <div class="score-label">SCORE</div>
+      <div class="score-value" id="finalScore">0</div>
+      <div class="score-label">BEST</div>
+      <div class="score-value" id="highScoreDisp">0</div>
+    </div>
+    <div class="buttons">
+      <button class="pixel-btn" onclick="restartGame()">RESTART</button>
+      <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
+      <button class="pixel-btn" onclick="shareScore()">SHARE</button>
+    </div>
+  </div>
+
+  <audio id="bgm" loop src="bgm_mario.mp3"></audio>
+  <audio id="sfx_wing" src="sfx_wing.wav"></audio>
+  <audio id="sfx_hit" src="sfx_hit.wav"></audio>
+  <audio id="sfx_point" src="sfx_point.wav"></audio>
+  <audio id="sfx_swooshing" src="sfx_swooshing.wav"></audio>
+  <audio id="sfx_die" src="sfx_die.wav"></audio>
+
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <script>
-    // 1. Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
-      authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
-      projectId: "flappybirdleaderboard-186ad",
-      storageBucket: "flappybirdleaderboard-186ad.firebasestorage.app",
-      messagingSenderId: "623790359391",
-      appId: "1:623790359391:web:f62feff43af41642a72cea"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyBAZs4Lwd-IgdV9y0d41PXMHyW1mll_PVY",
+  authDomain: "flappybirdleaderboard-186ad.firebaseapp.com",
+  projectId: "flappybirdleaderboard-186ad",
+  storageBucket: "flappybirdleaderboard-186ad.firebasestorage.app",
+  messagingSenderId: "623790359391",
+  appId: "1:623790359391:web:f62feff43af41642a72cea",
+  measurementId: "G-TJR0EHQLQN"
+};
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    // 2. Global Variables
-    let currentUser = null;
-    let authMode = 'login';
-    let board, context;
-    const boardWidth = 360;
-    const boardHeight = 640;
+const preloadedImages = {};
+function preload(name, src) {
+    preloadedImages[name] = new Image();
+    preloadedImages[name].src = src;
+}
+preload("defaultOpen", "OpenEyes.png");
+preload("defaultClosed", "ClosedEyes.png");
+preload("blueOpen", "BlueOpenEyes.png");
+preload("blueClosed", "BlueCloseEyes.png");
+preload("redOpen", "RedOpenEyes.png");
+preload("redClosed", "RedCloseEyes.png");
+preload("legOpen", "LegendaryOpenEyes.png");
+preload("legClosed", "LegendaryCloseEyes.png");
 
-    // 3. Auth Functions
-    function fancyAlert(msg) {
-        const alertBox = document.getElementById("customAlert");
-        document.getElementById("alertMessage").textContent = msg;
-        alertBox.classList.add("show");
-        setTimeout(() => alertBox.classList.remove("show"), 2000);
+let currentUser = null;
+let userGender = 'male';
+let highScore = 0; 
+let currentFilter = 'global';
+let waitingForStart = true;
+let board, context;
+let authMode = 'login';
+let selectedSkin = 'default'; 
+
+const boardWidth = 360;
+const boardHeight = 640;
+const birdWidth = 34;
+const birdHeight = 24;
+const birdX = boardWidth / 8;
+const birdY = boardHeight / 2;
+
+let birdImg = new Image();
+let topPipeImg = new Image();
+let bottomPipeImg = new Image();
+
+let bird = { x: birdX, y: birdY, width: birdWidth, height: birdHeight };
+let pipeArray = [];
+let pipeWidth = 64;
+let pipeHeight = 512;
+let pipeX = boardWidth;
+
+// NEW PIPE TIMER LOGIC
+let pipeTimer = 0;
+const pipeInterval = 90; // Spawns approx every 1.5 seconds at 60fps
+
+let velocityX = 0; 
+let velocityY = 0; 
+let gravity = 0.4;
+
+let gameOver = false;
+let isDeadAnimating = false;
+let deathRotation = 0;
+let deathStartTime = 0;
+let score = 0;
+let paused = false;
+let isBlinking = false;
+let resumeTimer = 0; 
+
+let bgm, sfxWing, sfxHit, sfxPoint, sfxSwooshing, sfxDie;
+
+function fancyAlert(message, type = 'error') {
+    const alertBox = document.getElementById("customAlert");
+    const alertMsg = document.getElementById("alertMessage");
+    const alertIcon = document.getElementById("alertIcon");
+
+    alertMsg.textContent = message;
+    
+    if (type === 'success') {
+        alertBox.style.borderColor = "gold";
+        alertIcon.textContent = "⭐";
+    } else {
+        alertBox.style.borderColor = "#ff6347";
+        alertIcon.textContent = "🚫";
     }
 
-    function toggleAuthMode() {
-      const title = document.getElementById("authTitle");
-      const btn = document.getElementById("authPrimaryBtn");
-      const toggle = document.getElementById("authToggle");
-      const genderInput = document.getElementById("genderInput");
-      
-      if (authMode === 'login') {
-        authMode = 'register';
-        title.textContent = "FLAPPY REGISTER";
-        btn.textContent = "REGISTER";
-        toggle.textContent = "Already have an account? Login";
-        genderInput.style.display = "block";
-      } else {
-        authMode = 'login';
-        title.textContent = "FLAPPY LOGIN";
-        btn.textContent = "LOGIN";
-        toggle.textContent = "Don't have an account? Register";
-        genderInput.style.display = "none";
+    alertBox.classList.add("show");
+    setTimeout(() => {
+        alertBox.classList.remove("show");
+    }, 2500);
+}
+
+function updateBirdSkins(blinking) {
+    let target = "";
+    if (selectedSkin === 'legendary') target = blinking ? "legClosed" : "legOpen";
+    else if (selectedSkin === 'red') target = blinking ? "redClosed" : "redOpen";
+    else if (selectedSkin === 'blue') target = blinking ? "blueClosed" : "blueOpen";
+    else target = blinking ? "defaultClosed" : "defaultOpen";
+    
+    birdImg.src = preloadedImages[target].src;
+}
+
+function selectSkin(skinName, requiredScore) {
+    if (highScore >= requiredScore) {
+        selectedSkin = skinName;
+        refreshSkinUI();
+        fancyAlert(skinName.toUpperCase() + " SELECTED!", 'success');
+    } else {
+        fancyAlert("REACH " + requiredScore + " SCORE!", 'error');
+    }
+}
+
+function refreshSkinUI() {
+    document.querySelectorAll('.skin-item').forEach(el => el.classList.remove('selected', 'locked'));
+    
+    if (highScore < 200) document.getElementById('item200').classList.add('locked');
+    if (highScore < 400) document.getElementById('item400').classList.add('locked');
+    if (highScore < 800) document.getElementById('item800').classList.add('locked');
+
+    let activeId = 'item0';
+    if (selectedSkin === 'blue') activeId = 'item200';
+    if (selectedSkin === 'red') activeId = 'item400';
+    if (selectedSkin === 'legendary') activeId = 'item800';
+    document.getElementById(activeId).classList.add('selected');
+}
+
+function toggleAuthMode() {
+  const title = document.getElementById("authTitle");
+  const btn = document.getElementById("authPrimaryBtn");
+  const toggle = document.getElementById("authToggle");
+  const genderInput = document.getElementById("genderInput");
+  
+  if (authMode === 'login') {
+    authMode = 'register';
+    title.textContent = "FLAPPY REGISTER";
+    btn.textContent = "REGISTER";
+    toggle.textContent = "Already have an account? Login";
+    genderInput.style.display = "block";
+  } else {
+    authMode = 'login';
+    title.textContent = "FLAPPY LOGIN";
+    btn.textContent = "LOGIN";
+    toggle.textContent = "Don't have an account? Register";
+    genderInput.style.display = "none";
+  }
+}
+
+async function processAuth() {
+  const u = document.getElementById("usernameInput").value.trim().toLowerCase();
+  const p = document.getElementById("passwordInput").value.trim();
+  const g = document.getElementById("genderInput").value;
+  
+  if (!u || !p) { fancyAlert("FILL ALL FIELDS!", 'error'); return; }
+  
+  try {
+    const userRef = db.collection("users").doc(u);
+    const doc = await userRef.get();
+    
+    if (authMode === 'register') {
+      if (doc.exists) { fancyAlert("USERNAME EXISTS!", 'error'); } 
+      else {
+        await userRef.set({ username: u, password: p, gender: g, highScore: 0, timestamp: Date.now() });
+        fancyAlert("SUCCESS! NOW LOGIN.", 'success');
+        toggleAuthMode();
       }
-    }
-
-    async function processAuth() {
-      const u = document.getElementById("usernameInput").value.trim().toLowerCase();
-      const p = document.getElementById("passwordInput").value.trim();
-      const g = document.getElementById("genderInput").value;
-      
-      if (!u || !p) { fancyAlert("FILL ALL FIELDS!"); return; }
-      
-      try {
-        const userRef = db.collection("users").doc(u);
-        const doc = await userRef.get();
+    } else {
+      if (!doc.exists || doc.data().password !== p) { fancyAlert("WRONG CREDENTIALS!", 'error'); } 
+      else {
+        currentUser = u;
+        const userData = doc.data();
+        userGender = userData.gender || 'male';
+        highScore = userData.highScore || 0; 
         
-        if (authMode === 'register') {
-          if (doc.exists) { 
-            fancyAlert("USERNAME TAKEN!"); 
-          } else {
-            await userRef.set({ 
-                username: u, 
-                password: p, 
-                gender: g, 
-                highScore: 0, 
-                totalCoins: 0, 
-                unlockedMaps: [0], 
-                timestamp: Date.now() 
-            });
-            fancyAlert("REGISTERED! PLEASE LOGIN.");
-            toggleAuthMode();
-          }
-        } else {
-          // Login Logic
-          if (!doc.exists) {
-            fancyAlert("USER NOT FOUND!");
-          } else if (doc.data().password !== p) {
-            fancyAlert("WRONG PASSWORD!");
-          } else {
-            // SUCCESSFUL LOGIN
-            currentUser = u;
-            const userData = doc.data();
-            
-            // UI Transition
-            document.getElementById("authContainer").style.display = "none";
-            const displayElem = document.getElementById("userDisplay");
-            displayElem.innerHTML = `<span>${userData.gender === 'female' ? "👩" : "👨"} ${u.toUpperCase()}</span>`;
-            displayElem.style.display = "block";
-            
-            fancyAlert("LOGGED IN!");
-            startGame(); // Trigger game initialization
-          }
-        }
-      } catch (err) { 
-        console.error(err);
-        fancyAlert("FIREBASE ERROR!"); 
+        refreshSkinUI();
+        updateBirdSkins(false);
+        
+        const displayEmoji = (userGender === 'female') ? "👩" : "👨";
+        const displayElem = document.getElementById("userDisplay");
+        displayElem.innerHTML = `<span class="user-emoji">${displayEmoji}</span><span>${u.toUpperCase()}</span>`;
+        displayElem.style.visibility = "visible";
+        document.getElementById("authContainer").style.display = "none";
+        fancyAlert("WELCOME " + u.toUpperCase(), 'success');
       }
     }
+  } catch (err) { fancyAlert("AUTH ERROR!", 'error'); }
+}
 
-    // 4. Game Engine Initialization
-    window.onload = function() {
-      board = document.getElementById("board");
-      board.width = boardWidth;
-      board.height = boardHeight;
-      context = board.getContext("2d");
-    };
+window.onload = function() {
+  board = document.getElementById("board");
+  board.width = boardWidth; board.height = boardHeight;
+  context = board.getContext("2d");
+  
+  birdImg.src = preloadedImages["defaultOpen"].src;
+  topPipeImg.src = "toppipe.png";
+  bottomPipeImg.src = "bottompipe.png";
+  bgm = document.getElementById("bgm");
+  sfxWing = document.getElementById("sfx_wing");
+  sfxHit = document.getElementById("sfx_hit");
+  sfxPoint = document.getElementById("sfx_point");
+  sfxSwooshing = document.getElementById("sfx_swooshing");
+  sfxDie = document.getElementById("sfx_die");
 
-    function startGame() {
-        // Your existing Flappy Bird game loop (requestAnimationFrame, etc.) would go here
-        console.log("Game started for: " + currentUser);
-        context.fillStyle = "white";
-        context.fillText("WELCOME " + currentUser.toUpperCase(), 50, 100);
+  document.getElementById("pauseBtn").onclick = togglePause;
+  document.getElementById("gameTab").onclick = () => switchTab("game");
+  document.getElementById("scoreboardTab").onclick = () => switchTab("scoreboard");
+  document.getElementById("skinsTab").onclick = () => switchTab("skins");
+
+  document.addEventListener("keydown", function(e) {
+    if (e.code === "KeyM") {
+        togglePause();
+    } else {
+        moveBird(e);
     }
+  });
+
+  document.addEventListener("touchstart", moveBird);
+  requestAnimationFrame(update);
+  // Interval removed to prevent "bunching" bug
+};
+
+function update() {
+  requestAnimationFrame(update);
+  if (!currentUser) return;
+
+  context.clearRect(0, 0, board.width, board.height);
+  isBlinking = (Date.now() % 4000) < 200;
+
+  if (isDeadAnimating) {
+    let elapsed = Date.now() - deathStartTime;
+    for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
+
+    context.save();
+    context.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
+    deathRotation += 0.2; 
+    context.rotate(deathRotation);
+    bird.y = Math.min(bird.y + 8, board.height - bird.height); 
+    context.drawImage(birdImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
+    context.restore();
+
+    if (elapsed > 3000) {
+      isDeadAnimating = false;
+      showGameOverUI();
+    }
+    return; 
+  }
+
+  updateBirdSkins(isBlinking);
+
+  document.getElementById("skin0").src = isBlinking ? preloadedImages["defaultClosed"].src : preloadedImages["defaultOpen"].src;
+  document.getElementById("skin200").src = isBlinking ? preloadedImages["blueClosed"].src : preloadedImages["blueOpen"].src;
+  document.getElementById("skin400").src = isBlinking ? preloadedImages["redClosed"].src : preloadedImages["redOpen"].src;
+  document.getElementById("skin800").src = isBlinking ? preloadedImages["legClosed"].src : preloadedImages["legOpen"].src;
+
+  if (resumeTimer > 0 || (paused && !gameOver)) {
+      context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+      for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
+      
+      context.fillStyle = "gold"; context.strokeStyle = "black"; context.lineWidth = 6; context.textAlign = "center";
+      
+      if (resumeTimer > 0) {
+        context.font = "60px 'Press Start 2P'";
+        context.strokeText(resumeTimer, board.width / 2, board.height / 2);
+        context.fillText(resumeTimer, board.width / 2, board.height / 2);
+      } else {
+        context.font = "16px 'Press Start 2P'";
+        context.fillStyle = "white";
+        context.strokeText("TAP / SPACE TO CONTINUE", board.width / 2, board.height / 2 + 100);
+        context.fillText("TAP / SPACE TO CONTINUE", board.width / 2, board.height / 2 + 100);
+      }
+      return; 
+  }
+
+  if (gameOver) {
+      context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+      for (let pipe of pipeArray) { context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height); }
+      return;
+  }
+
+  // Handle Pipe Spawning Timer
+  if (!waitingForStart && !gameOver && !paused && resumeTimer <= 0 && !isDeadAnimating) {
+      pipeTimer++;
+      if (pipeTimer >= pipeInterval) {
+          placePipes();
+          pipeTimer = 0;
+      }
+  }
+
+  if (!waitingForStart) {
+    velocityY += gravity;
+    if (bird.y + bird.height >= board.height - 20) {
+        bird.y = board.height - bird.height - 20;
+        handleGameOver();
+    } else {
+        bird.y = Math.max(bird.y + velocityY, 0);
+    }
+    velocityX = -2;
+  } else {
+    bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
+    context.fillStyle = "white"; context.strokeStyle = "black"; context.lineWidth = 4; context.font = "16px 'Press Start 2P'"; context.textAlign = "center";
+    context.strokeText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
+    context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
+  }
+  
+  context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+  
+  for (let i = 0; i < pipeArray.length; i++) {
+    let pipe = pipeArray[i];
+    if (!waitingForStart) pipe.x += velocityX;
+    context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+    if (!pipe.passed && bird.x > pipe.x + pipe.width) {
+      score += 0.5; pipe.passed = true; sfxPoint.play();
+    }
+    if (detectCollision(bird, pipe)) handleGameOver();
+  }
+  
+  pipeArray = pipeArray.filter(p => p.x > -pipeWidth);
+  
+  if (!waitingForStart) {
+    context.fillStyle = "white"; context.strokeStyle = "black"; context.lineWidth = 4; context.font = "40px 'Press Start 2P'"; context.textAlign = "center";
+    context.strokeText(Math.floor(score), board.width / 2, board.height / 5);
+    context.fillText(Math.floor(score), board.width / 2, board.height / 5);
+  }
+}
+
+function placePipes() {
+  if (gameOver || paused || waitingForStart || resumeTimer > 0 || isDeadAnimating) return;
+
+  let randomY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
+  let opening = 160;
+  pipeArray.push({ img: topPipeImg, x: pipeX, y: randomY, width: pipeWidth, height: pipeHeight, passed: false });
+  pipeArray.push({ img: bottomPipeImg, x: pipeX, y: randomY + pipeHeight + opening, width: pipeWidth, height: pipeHeight, passed: false });
+}
+
+function moveBird(e) {
+  if (gameOver || !currentUser || resumeTimer > 0 || isDeadAnimating) return;
+  if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
+  
+  if (paused) {
+      paused = false;
+      bgm.play();
+      velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
+      return;
+  }
+
+  if (waitingForStart) { waitingForStart = false; bgm.play(); sfxSwooshing.play(); }
+  velocityY = -6; sfxWing.currentTime = 0; sfxWing.play();
+}
+
+function detectCollision(a, b) {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function handleGameOver() {
+  if (gameOver || isDeadAnimating) return;
+  isDeadAnimating = true;
+  deathStartTime = Date.now();
+  deathRotation = 0;
+  sfxHit.play(); sfxDie.play(); bgm.pause();
+}
+
+function showGameOverUI() {
+  gameOver = true;
+  let currentSessionScore = Math.floor(score);
+  document.getElementById("finalScore").textContent = currentSessionScore;
+  document.getElementById("highScoreDisp").textContent = Math.max(currentSessionScore, highScore);
+  document.getElementById("gameOverModal").classList.add("show");
+}
+
+function restartGame() {
+  document.getElementById("gameOverModal").classList.remove("show");
+  bird.y = birdY; velocityY = 0; pipeArray = []; score = 0; gameOver = false; 
+  isDeadAnimating = false; waitingForStart = true; resumeTimer = 0; pipeTimer = 0;
+}
+
+async function addToScoreboard() {
+  if (!currentUser) return;
+  const currentSessionScore = Math.floor(score); 
+  
+  try {
+    const userRef = db.collection("users").doc(currentUser);
+    const scoreRef = db.collection("scores").doc(currentUser);
+    
+    if (currentSessionScore > highScore) {
+        highScore = currentSessionScore; 
+        await userRef.update({ highScore: currentSessionScore });
+    }
+
+    const existingDoc = await scoreRef.get();
+    if (existingDoc.exists) {
+        const data = existingDoc.data();
+        if (data.score >= currentSessionScore) {
+            fancyAlert("SCORE ALREADY RECORDED!", "success");
+            switchTab("scoreboard");
+            return;
+        }
+    }
+
+    await scoreRef.set({
+      name: currentUser,
+      score: currentSessionScore, 
+      gender: userGender,
+      timestamp: Date.now() 
+    }, { merge: true });
+
+    fancyAlert("SCORE SAVED!", "success");
+    switchTab("scoreboard");
+  } catch (err) { 
+    console.error(err);
+    fancyAlert("ERROR SAVING SCORE!", "error"); 
+  }
+}
+
+function changeFilter(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showScoreboard();
+}
+
+async function showScoreboard() {
+  const scoreList = document.getElementById("scoreList");
+  scoreList.innerHTML = "FETCHING...";
+  let now = Date.now();
+  let startTime = 0;
+  if (currentFilter === 'daily') startTime = now - (24 * 60 * 60 * 1000);
+  else if (currentFilter === 'weekly') startTime = now - (7 * 24 * 60 * 60 * 1000);
+
+  try {
+    let query = db.collection("scores").orderBy("score", "desc");
+    if (currentFilter !== 'global') { query = query.where("timestamp", ">=", startTime); }
+    const snap = await query.limit(10).get();
+    let html = "";
+    let rank = 1;
+    if (snap.empty) { html = "<p style='text-align:center'>NO SCORES YET</p>"; } 
+    else {
+        snap.forEach(doc => {
+            const d = doc.data();
+            const emoji = (d.gender === 'female') ? "👩" : "👨";
+            html += `<p>${rank++}. ${emoji} ${d.name.toUpperCase()}: ${d.score}</p>`;
+        });
+    }
+    scoreList.innerHTML = html;
+  } catch (err) { scoreList.innerHTML = "ERROR LOADING."; }
+}
+
+function switchTab(tab) {
+  document.getElementById("gameTab").classList.toggle("active", tab === "game");
+  document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
+  document.getElementById("skinsTab").classList.toggle("active", tab === "skins");
+  document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
+  document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
+  document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
+  document.getElementById("skinsTabContent").style.display = (tab === "skins") ? "block" : "none";
+  if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
+  if (tab === "skins") { document.getElementById("gameOverModal").classList.remove("show"); refreshSkinUI(); }
+  if (tab === "game" && gameOver) restartGame();
+}
+
+function togglePause() {
+  if (gameOver || waitingForStart || resumeTimer > 0 || isDeadAnimating) return;
+  if (!paused) {
+      paused = true;
+      document.getElementById("pauseBtn").textContent = "PLAY";
+      bgm.pause();
+  } else {
+      document.getElementById("pauseBtn").textContent = "PAUSE";
+      resumeTimer = 3;
+      let countdown = setInterval(() => {
+          resumeTimer--;
+          if (resumeTimer <= 0) {
+              clearInterval(countdown);
+          }
+      }, 1000);
+  }
+}
+
+function shareScore() {
+  const text = `${currentUser.toUpperCase()} reached ${Math.floor(score)}!`;
+  if (navigator.share) navigator.share({ title: "My Flappy Score", text });
+  else fancyAlert("SCORE: " + Math.floor(score), 'success');
+}
   </script>
 </body>
 </html>
