@@ -9,6 +9,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="OpenEyes.png">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Press Start 2P', monospace;
       margin: 0;
@@ -17,8 +23,104 @@
       background-size: cover;
       text-align: center;
       color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
 
+    /* Game Container from 1st Code adapted for canvas matching */
+    .game {
+      position: relative;
+      width: 360px;
+      height: 640px;
+      overflow: hidden;
+      background: url("1.png") no-repeat center center;
+      background-size: cover;
+      border: 8px solid #3f3f3f;
+    }
+
+    /* Sky from 1st Code */
+    .sky {
+      position: absolute;
+      inset: 0;
+      background: #6dd5ed;
+      z-index: 2;
+    }
+
+    /* Logo from 1st Code */
+    .logo {
+      margin-top: 40px;
+      text-align: center;
+      line-height: 0.85;
+      user-select: none;
+    }
+
+    .flappy {
+      font-size: 48px;
+      color: #7bdc58;
+      text-shadow:
+        3px 3px 0 #2f7d2c,
+        6px 6px 0 #222;
+    }
+
+    .bird-text {
+      font-size: 48px;
+      margin-top: -6px;
+      color: #ffe56b;
+      text-shadow:
+        3px 3px 0 #b98500,
+        6px 6px 0 #222;
+    }
+
+    /* Bird from 1st Code */
+    .bird {
+      display: block;
+      width: 60px;
+      margin: 70px auto 40px;
+      animation: float 1s ease-in-out infinite alternate;
+      image-rendering: pixelated;
+    }
+
+    @keyframes float {
+      from { transform: translateY(0); }
+      to { transform: translateY(-12px); }
+    }
+
+    /* Main Menu Buttons from 1st Code */
+    .menu {
+      margin-top: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .btn {
+      width: 200px;
+      padding: 10px;
+      text-decoration: none;
+      text-align: center;
+      font-size: 12px;
+      color: white;
+      background: #c56b2a;
+      border: 3px solid white;
+      box-shadow: 5px 5px #7c3d11;
+      transition: .15s;
+    }
+
+    .btn:hover {
+      transform: translateY(2px);
+      box-shadow: 3px 3px #7c3d11;
+    }
+
+    .btn:active {
+      transform: translateY(5px);
+      box-shadow: none;
+    }
+
+    /* Elements from 2nd Code */
     #customAlert {
       position: fixed;
       top: -100px;
@@ -93,7 +195,7 @@
     .toggle-link:hover { color: gold; }
 
     .tabs {
-      position: fixed;
+      position: absolute;
       top: 0; width: 100%;
       background: rgba(0,0,0,0.8);
       z-index: 10;
@@ -117,9 +219,9 @@
     .tabs button.active { background: gold; }
 
     #userDisplay {
-      position: fixed;
+      position: absolute;
       bottom: 10px;
-      left: 20px;
+      left: 10px;
       color: gold; 
       font-size: 8px; 
       display: inline-flex;
@@ -140,19 +242,17 @@
     }
 
     #board {
-      display: block;
-      margin: 60px auto 0 auto;
+      display: none; /* Initially hidden until PLAY menu is pressed */
+      position: absolute;
+      inset: 0;
       background: url("flappybirdbg.png") no-repeat center/cover;
-      position: relative;
       z-index: 1;
-      max-width: 100%;
-      height: auto;
-      border-radius: 20px;
-      border: 10px solid cyan;
+      width: 100%;
+      height: 100%;
     }
 
     #pauseBtn {
-      position: fixed;
+      position: absolute;
       bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
@@ -163,16 +263,18 @@
       font-family: 'Press Start 2P', monospace;
       border-radius: 10px;
       cursor: pointer;
-      z-index: 2;
+      z-index: 10;
+      display: none;
     }
 
     #gameOverModal {
       display: none;
-      position: fixed;
+      position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       z-index: 999;
       text-align: center;
+      width: 100%;
     }
 
     .popup {
@@ -217,9 +319,12 @@
       background: rgba(0, 0, 0, 0.9);
       border: 4px solid cyan;
       border-radius: 10px;
-      width: 340px;
+      width: 320px;
       margin: 80px auto 0;
       line-height: 1.6;
+      position: absolute;
+      top: 0; left: 12px;
+      z-index: 5;
     }
 
     .skin-item {
@@ -314,62 +419,79 @@
     </div>
   </div>
 
-  <div class="tabs">
-    <button id="gameTab" class="active">Game</button>
-    <button id="scoreboardTab">Scoreboard</button>
-    <button id="skinsTab">Skins</button>
-  </div>
+  <div class="game">
 
-  <div id="userDisplay"></div>
+    <div class="tabs">
+      <button id="gameTab" class="active">Game</button>
+      <button id="scoreboardTab">Scoreboard</button>
+      <button id="skinsTab">Skins</button>
+    </div>
 
-  <canvas id="board"></canvas>
+    <div id="userDisplay"></div>
 
-  <div id="gameContainer">
-    <button id="pauseBtn">Pause</button>
-  </div>
+    <div class="sky" id="mainMenuSky">
+      <div class="logo">
+          <div class="flappy">Flappy</div>
+          <div class="bird-text">Bird</div>
+      </div>
+      <img src="OpenEyes.png" class="bird">
+      <div class="menu">
+          <a href="#" class="btn" onclick="startGameFromMenu(event)">PLAY</a>
+          <a href="#" class="btn" onclick="switchTab('scoreboard'); event.preventDefault();">LEADERBOARD</a>
+          <a href="#" class="btn" onclick="event.preventDefault();">MORE GAMES</a>
+      </div>
+    </div>
 
-  <div id="scoreboard">
-    <h3 style="font-size: 14px; color: gold;">LEADERBOARD</h3>
-    <div class="sb-filters">
-        <button class="filter-btn active" onclick="changeFilter('global', this)">GLOBAL</button>
-        <button class="filter-btn" onclick="changeFilter('weekly', this)">WEEKLY</button>
-        <button class="filter-btn" onclick="changeFilter('daily', this)">DAILY</button>
-    </div>
-    <div id="scoreList">Loading...</div>
-  </div>
+    <canvas id="board"></canvas>
 
-  <div id="skinsTabContent">
-    <h3 style="font-size: 14px; color: gold;">SELECT SKIN</h3>
-    <div class="skin-item" id="item0" onclick="selectSkin('default', 0)">
-      <img src="OpenEyes.png" class="skin-img" id="skin0">
-      <span style="font-size: 8px;">DEFAULT (0+)</span>
+    <div id="gameContainer">
+      <button id="pauseBtn">Pause</button>
     </div>
-    <div class="skin-item" id="item200" onclick="selectSkin('blue', 200)">
-      <img src="BlueOpenEyes.png" class="skin-img" id="skin200">
-      <span style="font-size: 8px;">BLUE (200+)</span>
-    </div>
-    <div class="skin-item" id="item400" onclick="selectSkin('red', 400)">
-      <img src="RedOpenEyes.png" class="skin-img" id="skin400">
-      <span style="font-size: 8px;">RED (400+)</span>
-    </div>
-    <div class="skin-item" id="item800" onclick="selectSkin('legendary', 800)">
-      <img src="LegendaryOpenEyes.png" class="skin-img" id="skin800">
-      <span style="font-size: 8px;">MYTHIC (800+)</span>
-    </div>
-  </div>
 
-  <div id="gameOverModal">
-    <div class="popup">
-      <div class="score-label">SCORE</div>
-      <div class="score-value" id="finalScore">0</div>
-      <div class="score-label">BEST</div>
-      <div class="score-value" id="highScoreDisp">0</div>
+    <div id="scoreboard">
+      <h3 style="font-size: 14px; color: gold;">LEADERBOARD</h3>
+      <div class="sb-filters">
+          <button class="filter-btn active" onclick="changeFilter('global', this)">GLOBAL</button>
+          <button class="filter-btn" onclick="changeFilter('weekly', this)">WEEKLY</button>
+          <button class="filter-btn" onclick="changeFilter('daily', this)">DAILY</button>
+      </div>
+      <div id="scoreList">Loading...</div>
     </div>
-    <div class="buttons">
-      <button class="pixel-btn" onclick="restartGame()">RESTART</button>
-      <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
-      <button class="pixel-btn" onclick="shareScore()">SHARE</button>
+
+    <div id="skinsTabContent">
+      <h3 style="font-size: 14px; color: gold;">SELECT SKIN</h3>
+      <div class="skin-item" id="item0" onclick="selectSkin('default', 0)">
+        <img src="OpenEyes.png" class="skin-img" id="skin0">
+        <span style="font-size: 8px;">DEFAULT (0+)</span>
+      </div>
+      <div class="skin-item" id="item200" onclick="selectSkin('blue', 200)">
+        <img src="BlueOpenEyes.png" class="skin-img" id="skin200">
+        <span style="font-size: 8px;">BLUE (200+)</span>
+      </div>
+      <div class="skin-item" id="item400" onclick="selectSkin('red', 400)">
+        <img src="RedOpenEyes.png" class="skin-img" id="skin400">
+        <span style="font-size: 8px;">RED (400+)</span>
+      </div>
+      <div class="skin-item" id="item800" onclick="selectSkin('legendary', 800)">
+        <img src="LegendaryOpenEyes.png" class="skin-img" id="skin800">
+        <span style="font-size: 8px;">MYTHIC (800+)</span>
+      </div>
     </div>
+
+    <div id="gameOverModal">
+      <div class="popup">
+        <div class="score-label">SCORE</div>
+        <div class="score-value" id="finalScore">0</div>
+        <div class="score-label">BEST</div>
+        <div class="score-value" id="highScoreDisp">0</div>
+      </div>
+      <div class="buttons">
+        <button class="pixel-btn" onclick="restartGame()">RESTART</button>
+        <button class="pixel-btn" onclick="addToScoreboard()">ADD TO LEADERBOARD</button>
+        <button class="pixel-btn" onclick="shareScore()">SHARE</button>
+      </div>
+    </div>
+
   </div>
 
   <audio id="bgm" loop src="bgm_mario.mp3"></audio>
@@ -435,9 +557,8 @@ let pipeWidth = 64;
 let pipeHeight = 512;
 let pipeX = boardWidth;
 
-// NEW PIPE TIMER LOGIC
 let pipeTimer = 0;
-const pipeInterval = 90; // Spawns approx every 1.5 seconds at 60fps
+const pipeInterval = 90; 
 
 let velocityX = 0; 
 let velocityY = 0; 
@@ -600,8 +721,16 @@ window.onload = function() {
 
   document.addEventListener("touchstart", moveBird);
   requestAnimationFrame(update);
-  // Interval removed to prevent "bunching" bug
 };
+
+/* Click Event to shift visibility from Main Menu to Engine Canvas */
+function startGameFromMenu(event) {
+  if(event) event.preventDefault();
+  document.getElementById("mainMenuSky").style.display = "none";
+  document.getElementById("board").style.display = "block";
+  document.getElementById("pauseBtn").style.display = "block";
+  restartGame();
+}
 
 function update() {
   requestAnimationFrame(update);
@@ -661,7 +790,6 @@ function update() {
       return;
   }
 
-  // Handle Pipe Spawning Timer
   if (!waitingForStart && !gameOver && !paused && resumeTimer <= 0 && !isDeadAnimating) {
       pipeTimer++;
       if (pipeTimer >= pipeInterval) {
@@ -681,9 +809,12 @@ function update() {
     velocityX = -2;
   } else {
     bird.y = birdY + 10 * Math.sin(Date.now() * 0.005);
-    context.fillStyle = "white"; context.strokeStyle = "black"; context.lineWidth = 4; context.font = "16px 'Press Start 2P'"; context.textAlign = "center";
-    context.strokeText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
-    context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
+    // Explicit condition check ensuring start string does not render over main HTML splash page
+    if(document.getElementById("mainMenuSky").style.display === "none") {
+      context.fillStyle = "white"; context.strokeStyle = "black"; context.lineWidth = 4; context.font = "16px 'Press Start 2P'"; context.textAlign = "center";
+      context.strokeText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
+      context.fillText("TAP / SPACE TO PLAY", board.width/2, board.height/2 + 100);
+    }
   }
   
   context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
@@ -717,6 +848,8 @@ function placePipes() {
 }
 
 function moveBird(e) {
+  // Prevent tracking inputs while browsing custom overlay items or during auth screens
+  if (document.getElementById("mainMenuSky").style.display !== "none") return;
   if (gameOver || !currentUser || resumeTimer > 0 || isDeadAnimating) return;
   if (e.type === "keydown" && e.code !== "Space" && e.code !== "ArrowUp") return;
   
@@ -742,7 +875,6 @@ function handleGameOver() {
   deathRotation = 0;
   sfxHit.play(); sfxDie.play(); bgm.pause();
 
-  // SCREEN SHAKE TRIGGER
   board.classList.add("shake-effect");
   setTimeout(() => {
     board.classList.remove("shake-effect");
@@ -838,8 +970,18 @@ function switchTab(tab) {
   document.getElementById("gameTab").classList.toggle("active", tab === "game");
   document.getElementById("scoreboardTab").classList.toggle("active", tab === "scoreboard");
   document.getElementById("skinsTab").classList.toggle("active", tab === "skins");
-  document.getElementById("board").style.display = (tab === "game") ? "block" : "none";
-  document.getElementById("pauseBtn").style.display = (tab === "game") ? "block" : "none";
+  
+  // Tab Management adjustments for menu sky integration
+  if (tab === "game") {
+    document.getElementById("mainMenuSky").style.display = "block";
+    document.getElementById("board").style.display = "none";
+    document.getElementById("pauseBtn").style.display = "none";
+  } else {
+    document.getElementById("mainMenuSky").style.display = "none";
+    document.getElementById("board").style.display = "none";
+    document.getElementById("pauseBtn").style.display = "none";
+  }
+
   document.getElementById("scoreboard").style.display = (tab === "scoreboard") ? "block" : "none";
   document.getElementById("skinsTabContent").style.display = (tab === "skins") ? "block" : "none";
   if (tab === "scoreboard") { document.getElementById("gameOverModal").classList.remove("show"); showScoreboard(); } 
